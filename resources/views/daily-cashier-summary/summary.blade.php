@@ -1,12 +1,4 @@
 @php
-    $sidebar = [
-        ['label' => 'Favorites', 'icon' => 'star'],
-        ['label' => 'Approval', 'icon' => 'circle-check'],
-        ['label' => 'Banquet', 'icon' => 'calendar-days'],
-        ['label' => 'Department Request', 'icon' => 'clipboard-list'],
-        ['label' => 'FB & Shop Cashier', 'icon' => 'shopping-bag', 'active' => true],
-        ['label' => 'Sales', 'icon' => 'badge-dollar-sign'],
-    ];
     $outlets = [
         ['code' => '10', 'name' => 'Ibis Kitchen'],
         ['code' => '20', 'name' => 'Restaurant Terrace'],

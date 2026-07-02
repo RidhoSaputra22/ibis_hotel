@@ -1,14 +1,4 @@
 @php
-    $sidebar = [
-        ['label' => 'Favorites', 'icon' => 'star'],
-        ['label' => 'Approval', 'icon' => 'circle-check'],
-        ['label' => 'Input', 'icon' => 'keyboard'],
-        ['label' => 'Receipt', 'icon' => 'receipt-text'],
-        ['label' => 'Department Report', 'icon' => 'chart-column'],
-        ['label' => 'FB & Shop Cashier', 'icon' => 'shopping-bag', 'active' => true],
-        ['label' => 'Sales', 'icon' => 'badge-dollar-sign'],
-    ];
-
     $master = [
         ['label' => 'Service Category 1', 'icon' => 'footprints'],
         ['label' => 'Outlet Master', 'icon' => 'store'],

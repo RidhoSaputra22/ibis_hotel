@@ -1,13 +1,4 @@
 @php
-    $sidebar = [
-        ['label' => 'Favorites', 'icon' => 'star'],
-        ['label' => 'Approval', 'icon' => 'circle-check'],
-        ['label' => 'Input', 'icon' => 'keyboard'],
-        ['label' => 'Request', 'icon' => 'clipboard-list'],
-        ['label' => 'Department Report', 'icon' => 'chart-no-axes-combined'],
-        ['label' => 'FB & Shop Cashier', 'icon' => 'shopping-bag', 'active' => true],
-        ['label' => 'Sales', 'icon' => 'badge-dollar-sign'],
-    ];
     $tables = collect(range(1, 20))->map(fn ($number) => str_pad($number, 2, '0', STR_PAD_LEFT));
 @endphp
 

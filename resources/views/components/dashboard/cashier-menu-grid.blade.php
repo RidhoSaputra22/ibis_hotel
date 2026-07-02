@@ -23,8 +23,3 @@
         <x-ui.menu-tile-section title="Report" :items="$reports" color="#07913d" grid-class="grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5" />
     </div>
 </section>
-
-<footer class="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-5 py-3 text-[10px] text-slate-400 lg:px-7">
-    <span>Cashier Dashboard · Tailwind UI</span>
-    <span>{{ now()->format('H:i') }} · {{ now()->format('d/m/Y') }}</span>
-</footer>

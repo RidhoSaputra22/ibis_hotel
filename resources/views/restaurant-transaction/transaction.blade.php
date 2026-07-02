@@ -1,13 +1,4 @@
 @php
-    $sidebar = [
-        ['label' => 'Favorites', 'icon' => 'star'],
-        ['label' => 'Approval', 'icon' => 'circle-check'],
-        ['label' => 'Input', 'icon' => 'keyboard'],
-        ['label' => 'Request', 'icon' => 'clipboard-list'],
-        ['label' => 'Department Report', 'icon' => 'chart-no-axes-combined'],
-        ['label' => 'FB & Shop Cashier', 'icon' => 'shopping-bag', 'active' => true],
-        ['label' => 'Sales', 'icon' => 'badge-dollar-sign'],
-    ];
     $zones = range('A', 'J');
     $serviceCategories = ['Appetizer', 'Buffet', 'Dessert', 'Vegetarian', 'Food Promotion', 'GRAB FOOD', 'Nusantara Food'];
     $serviceItems = [
