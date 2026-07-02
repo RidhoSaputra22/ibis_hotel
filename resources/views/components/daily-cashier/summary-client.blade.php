@@ -21,6 +21,8 @@
         const cashierTo = document.getElementById('cashierTo');
         const cashierFromName = document.getElementById('cashierFromName');
         const cashierToName = document.getElementById('cashierToName');
+        const cashierGroupInput = document.querySelector('input[name="groupBy"][value="cashier"]');
+        const cashierLookupButtons = [...document.querySelectorAll('[data-cashier-target]')];
         const outputInputs = [...document.querySelectorAll('input[name="outputTo"]')];
         const printerName = document.getElementById('printerName');
         const printerPropertiesButton = document.getElementById('printerPropertiesButton');
@@ -36,6 +38,7 @@
         const rupiah = (value) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value);
         const findName = (data, code) => data.find((item) => item.code === code)?.name ?? '-';
         const selectedGroupBy = () => groupByInputs.find((input) => input.checked)?.value || 'outlet';
+        let cashierLookupTarget = 'from';
 
         function updateOutletNames() {
             outletFromName.value = findName(outletData, outletFrom.value);
@@ -103,17 +106,37 @@
 
         groupByInputs.forEach((input) => input.addEventListener('change', updateGroupByUI));
         outputInputs.forEach((input) => input.addEventListener('change', updateOutputUI));
+        cashierLookupButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                cashierLookupTarget = button.dataset.cashierTarget || 'from';
+            });
+        });
         outletFrom.addEventListener('change', updateOutletNames);
         outletTo.addEventListener('change', updateOutletNames);
         cashierFrom.addEventListener('change', updateCashierNames);
         cashierTo.addEventListener('change', updateCashierNames);
         printSummaryButton.addEventListener('click', renderReport);
         document.getElementById('browserPrintButton').addEventListener('click', () => window.print());
-        printerPropertiesButton.addEventListener('click', () => printerPropertiesModal.showModal());
         document.getElementById('closePrinterProperties').addEventListener('click', () => printerPropertiesModal.close());
         document.getElementById('closePrinterPropertiesTop')?.addEventListener('click', () => printerPropertiesModal.close());
         document.getElementById('savePrinterProperties').addEventListener('click', () => printerPropertiesModal.close());
         printerPropertiesModal.addEventListener('click', (event) => { if (event.target === printerPropertiesModal) printerPropertiesModal.close(); });
+        window.addEventListener('cashier-selected', (event) => {
+            const { cashierId, name } = event.detail || {};
+            if (!cashierId) return;
+
+            if (cashierGroupInput) {
+                cashierGroupInput.checked = true;
+                updateGroupByUI();
+            }
+
+            const targetField = cashierLookupTarget === 'to' ? cashierTo : cashierFrom;
+            const targetNameField = cashierLookupTarget === 'to' ? cashierToName : cashierFromName;
+
+            targetField.value = cashierId;
+            targetNameField.value = name ?? findName(cashierData, cashierId);
+            updateCashierNames();
+        });
 
         updateOutletNames(); updateCashierNames(); updateGroupByUI(); updateOutputUI();
     })();

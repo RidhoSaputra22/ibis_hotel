@@ -187,10 +187,17 @@
         waiterModal?.addEventListener('click', (event) => { if (event.target === waiterModal) waiterModal.close(); });
 
         window.addEventListener('reservation-folio-selected', (event) => {
-            const nameField = document.querySelector('input[placeholder="Nama tamu"]');
-            const roomField = document.querySelector('input[placeholder="No. Room"]');
+            const nameField = document.getElementById('chargeGuestNameInput');
+            const roomField = document.getElementById('roomChargeReferenceInput');
             if (nameField) nameField.value = event.detail.name ?? '';
             if (roomField) roomField.value = event.detail.roomNo ?? '';
+        });
+
+        window.addEventListener('folio-selected', (event) => {
+            const nameField = document.getElementById('chargeGuestNameInput');
+            const referenceField = document.getElementById('roomChargeReferenceInput');
+            if (nameField) nameField.value = event.detail.description ?? '';
+            if (referenceField) referenceField.value = event.detail.folioNo ?? '';
         });
 
         filterServices();

@@ -20,13 +20,20 @@
         ['code' => 'NURUL', 'name' => 'Nurul'],
         ['code' => 'RIZKY', 'name' => 'Rizky'],
     ];
+    $cashierLookupRows = collect($cashiers)->map(function ($cashier, $index) {
+        return [
+            'cashier_id' => $cashier['code'],
+            'name' => $cashier['name'],
+            'shift' => $index < 2 ? '1' : '2',
+        ];
+    })->all();
 @endphp
 
 <x-layouts.app title="Daily Cashier Summary">
     <x-ui.legacy-style-kit />
     <x-layouts.legacy-page :sidebar="$sidebar" hotel-name="Ibis Makassar City Center" system-name="Front Office & Cashier System" username="ADHA">
         <x-ui.breadcrumb-tabs :items="[
-            ['label' => 'Open Cashier'],
+            ['label' => 'Open Cashier', 'modal' => 'cashierLoginModal'],
             ['label' => 'Restaurant Transaction', 'href' => url('/restaurant-transaction')],
             ['label' => 'Daily Cashier Summary', 'current' => true],
         ]" />
@@ -43,7 +50,8 @@
     </x-layouts.legacy-page>
 
     <x-daily-cashier.printer-properties-modal />
-    <x-modals.cashier-lookup-modal id="cashierLookupModal" />
+    <x-modals.cashier-login-modal id="cashierLoginModal" />
+    <x-modals.cashier-lookup-modal id="cashierLookupModal" :cashiers="$cashierLookupRows" />
     <x-daily-cashier.summary-client :outlets="$outlets" :cashiers="$cashiers" />
 
     @push('style')

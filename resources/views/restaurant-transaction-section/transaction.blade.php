@@ -30,7 +30,7 @@
     <x-ui.legacy-style-kit />
     <x-layouts.legacy-page :sidebar="$sidebar" hotel-name="Ibis Makassar City Center" system-name="Restaurant & Cashier System" username="ADHA">
         <x-ui.breadcrumb-tabs :items="[
-            ['label' => 'Open Cashier'],
+            ['label' => 'Open Cashier', 'modal' => 'cashierLoginModal'],
             ['label' => 'Restaurant Transaction'],
             ['label' => 'TABLE 01', 'current' => true, 'id' => 'transactionTableTab'],
         ]" />

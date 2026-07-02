@@ -9,6 +9,7 @@
             @php
                 $label = data_get($item, 'label', $item);
                 $href = data_get($item, 'href');
+                $modal = data_get($item, 'modal');
                 $current = (bool) data_get($item, 'current', false);
                 $itemId = data_get($item, 'id');
             @endphp
@@ -25,6 +26,14 @@
                 <a href="{{ $href }}" class="rounded-t border border-slate-300 bg-white px-3 py-1.5 text-slate-600 shadow-sm hover:text-[#1871ad]">
                     {{ $label }}
                 </a>
+            @elseif ($modal)
+                <button
+                    type="button"
+                    data-open-dialog="{{ $modal }}"
+                    class="rounded-t border border-slate-300 bg-white px-3 py-1.5 text-slate-600 shadow-sm hover:text-[#1871ad]"
+                >
+                    {{ $label }}
+                </button>
             @else
                 <span class="rounded-t border border-slate-300 bg-white px-3 py-1.5 text-slate-600 shadow-sm">{{ $label }}</span>
             @endif
