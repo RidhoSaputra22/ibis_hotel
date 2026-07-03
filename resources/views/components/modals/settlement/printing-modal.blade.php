@@ -24,7 +24,12 @@
 
         <div class="min-h-[155px] px-6 py-7">
             <div class="flex items-center gap-3">
-                <div class="h-6 w-6 animate-spin rounded-full border-2 border-[#84b5c5] border-t-[#2b7896]"></div>
+                <div
+                    id="{{ $id }}PrintingLoader"
+                    class="grid h-6 w-6 place-items-center rounded-full border-2 border-[#84b5c5] border-t-[#2b7896] animate-spin"
+                >
+                    <span id="{{ $id }}PrintingSuccessIcon" class="hidden text-[11px] font-black text-white">✓</span>
+                </div>
 
                 <div>
                     <p id="{{ $id }}PrintingStatus" class="text-sm font-semibold text-[#536b74]">

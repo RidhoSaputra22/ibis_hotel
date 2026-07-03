@@ -1,6 +1,15 @@
 @props([
     'tableListUrl' => '/table-list',
+    'outletName' => null,
+    'cashierName' => null,
+    'transactionDate' => null,
 ])
+
+@php
+    $resolvedOutletName = filled($outletName) ? $outletName : session('cashier_login.outlet', 'Ibis Kitchen');
+    $resolvedCashierName = filled($cashierName) ? $cashierName : session('cashier_login.display_name', 'ADHA');
+    $resolvedTransactionDate = filled($transactionDate) ? $transactionDate : now()->locale('id')->translatedFormat('d F Y');
+@endphp
 
 <div class="flex flex-wrap items-center gap-1.5 border-b border-slate-200 bg-[#eff5f6] px-3 py-2">
     <button type="button" id="addOrderButton" class="toolbar-button"><i data-lucide="plus" class="h-3.5 w-3.5"></i> Add</button>
@@ -19,7 +28,7 @@
     <button type="button" id="cancelOrderButton" class="toolbar-button !border-rose-300 !bg-rose-50 !text-rose-700 hover:!bg-rose-100"><i data-lucide="x" class="h-3.5 w-3.5"></i> Cancel</button>
 
     <div class="ml-auto hidden items-center gap-2 text-[10px] text-slate-500 xl:flex">
-        <span class="font-semibold text-slate-700">Ibis Kitchen</span>
-        <span class="rounded border border-slate-300 bg-white px-2 py-1">ADHA · 15 Juni 2026</span>
+        <span class="font-semibold text-slate-700">{{ $resolvedOutletName }}</span>
+        <span class="rounded border border-slate-300 bg-white px-2 py-1">{{ $resolvedCashierName }} · {{ $resolvedTransactionDate }}</span>
     </div>
 </div>

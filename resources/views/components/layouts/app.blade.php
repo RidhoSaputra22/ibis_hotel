@@ -21,12 +21,36 @@
     @stack('scripts')
 
     <script>
+        const openCashierLoginModal = (trigger) => {
+            const dialog = document.getElementById(trigger.dataset.openCashierLogin);
+            if (!dialog || typeof dialog.showModal !== 'function') {
+                return;
+            }
+
+            const redirectTarget = trigger.dataset.redirectUrl || window.location.href;
+
+            dialog.querySelectorAll('[data-login-redirect-input]').forEach((input) => {
+                input.value = redirectTarget;
+            });
+
+            if (!dialog.open) {
+                dialog.showModal();
+            }
+        };
+
         document.addEventListener('click', (event) => {
+            const loginTrigger = event.target.closest('[data-open-cashier-login]');
+            if (loginTrigger) {
+                event.preventDefault();
+                openCashierLoginModal(loginTrigger);
+                return;
+            }
+
             const trigger = event.target.closest('[data-open-dialog]');
             if (!trigger) return;
 
             const dialog = document.getElementById(trigger.dataset.openDialog);
-            if (dialog && typeof dialog.showModal === 'function') {
+            if (dialog && typeof dialog.showModal === 'function' && !dialog.open) {
                 dialog.showModal();
             }
         });

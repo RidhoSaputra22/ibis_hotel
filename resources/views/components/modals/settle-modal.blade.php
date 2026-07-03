@@ -393,6 +393,8 @@
         const printingStatus = document.getElementById(@js($id . 'PrintingStatus'));
         const printingCancel = document.getElementById(@js($id . 'PrintingCancel'));
         const printingCancelTop = document.getElementById(@js($id . 'PrintingCancelTop'));
+        const printingLoader = document.getElementById(@js($id . 'PrintingLoader'));
+        const printingSuccessIcon = document.getElementById(@js($id . 'PrintingSuccessIcon'));
 
         const methodButtons = [...modal.querySelectorAll('[data-payment-method]')];
         const creditButtons = [...modal.querySelectorAll('.credit-card-button')];
@@ -814,7 +816,9 @@
             confirmPrintModal.close();
             printingModal.showModal();
 
+            setPrintingState(true);
             printingStatus.textContent = 'Sending settlement to printer...';
+            printingCancel.textContent = 'Cancel';
 
             window.dispatchEvent(new CustomEvent('settlement-print-requested', {
                 detail: {
@@ -824,9 +828,20 @@
             }));
 
             printingTimer = setTimeout(() => {
+                setPrintingState(false);
                 printingStatus.textContent = 'Settlement successfully sent to printer.';
+                printingCancel.textContent = 'OK';
             }, 1500);
         });
+
+        function setPrintingState(isLoading) {
+            printingLoader?.classList.toggle('animate-spin', isLoading);
+            printingLoader?.classList.toggle('border-[#84b5c5]', isLoading);
+            printingLoader?.classList.toggle('border-t-[#2b7896]', isLoading);
+            printingLoader?.classList.toggle('border-emerald-500', !isLoading);
+            printingLoader?.classList.toggle('bg-emerald-500', !isLoading);
+            printingSuccessIcon?.classList.toggle('hidden', isLoading);
+        }
 
         function closePrinting() {
             if (printingTimer) {

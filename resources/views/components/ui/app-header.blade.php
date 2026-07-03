@@ -1,10 +1,14 @@
 @props([
     'hotelName' => 'Ibis Makassar City Center',
     'systemName' => 'Restaurant & Cashier System',
-    'username' => 'ADHA',
+    'username' => null,
     'dark' => false,
     'showDepartmentBadges' => false,
 ])
+
+@php
+    $resolvedUsername = filled($username) ? $username : session('cashier_login.display_name', 'ADHA');
+@endphp
 
 <header class="flex h-[68px] items-center justify-between border-b {{ $dark ? 'border-white/10 bg-[#06111d]/80 backdrop-blur' : 'border-slate-300 bg-[#0a1a2a]' }} px-5 text-white shadow-md">
     <div class="flex items-center gap-3">
@@ -29,8 +33,8 @@
         <button type="button" class="hidden transition hover:text-white sm:inline-flex" title="Minimalkan"><i data-lucide="minus" class="h-4 w-4"></i></button>
         <button type="button" class="hidden transition hover:text-white sm:inline-flex" title="Maksimalkan"><i data-lucide="square" class="h-3.5 w-3.5"></i></button>
         <button type="button" class="transition hover:text-rose-300" title="Tutup"><i data-lucide="x" class="h-4 w-4"></i></button>
-        @if ($username)
-            <span class="hidden border-l border-white/10 pl-3 text-[10px] font-semibold text-slate-300 lg:inline">{{ $username }}</span>
+        @if ($resolvedUsername)
+            <span class="hidden border-l border-white/10 pl-3 text-[10px] font-semibold text-slate-300 lg:inline">{{ $resolvedUsername }}</span>
         @endif
     </div>
 </header>

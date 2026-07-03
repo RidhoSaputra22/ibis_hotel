@@ -19,7 +19,7 @@
 
 <x-layouts.app title="Restaurant Transaction">
     <x-ui.legacy-style-kit />
-    <x-layouts.legacy-page :sidebar="$sidebar" hotel-name="Ibis Makassar City Center" system-name="Restaurant & Cashier System" username="ADHA">
+    <x-layouts.legacy-page :sidebar="$sidebar" hotel-name="Ibis Makassar City Center" system-name="Restaurant & Cashier System" :username="session('cashier_login.display_name', 'ADHA')">
         <x-ui.breadcrumb-tabs :items="[
             ['label' => 'Open Cashier', 'modal' => 'cashierLoginModal'],
             ['label' => 'Restaurant Transaction'],
@@ -43,7 +43,7 @@
     <x-modals.folio-lookup-modal id="folioLookupModal" />
     <x-modals.reservation-folio-lookup-modal id="reservationFolioLookupModal" />
     <x-modals.move-split-modal id="moveSplitModal" table-no="01" order-no="00000017" />
-    <x-modals.print-billing-modal id="printBillingModal" table-no="01" check-no="0000024358" cashier="FBADHA" />
+    <x-modals.print-billing-modal id="printBillingModal" table-no="01" check-no="0000024358" :cashier="session('cashier_login.display_name', 'ADHA')" :outlet="session('cashier_login.outlet', 'Ibis Kitchen')" />
     <x-modals.settle-modal id="settleModal" bill-no="0000024593" :total-amount="20000" />
     <x-restaurant.transaction-client />
 </x-layouts.app>

@@ -23,7 +23,7 @@
 
 <x-layouts.app title="Daily Cashier Summary">
     <x-ui.legacy-style-kit />
-    <x-layouts.legacy-page :sidebar="$sidebar" hotel-name="Ibis Makassar City Center" system-name="Front Office & Cashier System" username="ADHA">
+    <x-layouts.legacy-page :sidebar="$sidebar" hotel-name="Ibis Makassar City Center" system-name="Front Office & Cashier System" :username="session('cashier_login.display_name', 'ADHA')">
         <x-ui.breadcrumb-tabs :items="[
             ['label' => 'Open Cashier', 'modal' => 'cashierLoginModal'],
             ['label' => 'Restaurant Transaction', 'href' => url('/restaurant-transaction')],

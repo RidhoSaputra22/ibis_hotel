@@ -16,8 +16,9 @@
 <body class="min-h-screen bg-[#cfdde1] font-sans text-[#455d66]">
 
 @php
-    $reportDate = '15-Jun-2026';
-    $cashier = 'FBA-DHA - FBADHA';
+    $reportDate = now()->format('d-M-Y');
+    $printedBy = session('cashier_login.display_name', 'ADHA');
+    $cashier = session('cashier_login.display_name', 'ADHA');
 
     $rows = [
         [
@@ -144,7 +145,7 @@
             <div class="border-b border-[#bdcdd2] px-3 py-2 text-[10px] font-bold text-[#607981]">
                 <div class="flex items-center gap-1.5">
                     <i data-lucide="folder-open" class="h-3.5 w-3.5 text-[#41788c]"></i>
-                    <span>Adha (1)</span>
+                    <span>{{ $cashier }} (1)</span>
                 </div>
             </div>
 
@@ -193,12 +194,12 @@
                             <h1 class="mt-1 text-xl font-black tracking-tight text-[#435f69]">
                                 Daily Cashier Summary
                             </h1>
-                        </div>
+                    </div>
 
                         <div class="pt-3 text-right text-[10px] leading-relaxed text-[#586f77]">
                             <p>Page 1 of 1 (PSR01200)</p>
-                            <p>Print Date : 15-Jun-2026 12:07</p>
-                            <p>Printed By : FBADHA</p>
+                            <p>Print Date : {{ now()->format('d-M-Y H:i') }}</p>
+                            <p>Printed By : {{ $printedBy }}</p>
                         </div>
                     </div>
 
@@ -274,7 +275,7 @@
                                 {{-- Header Cashier --}}
                                 <tr class="border-b border-[#95aeb5]">
                                     <td colspan="13" class="px-2 py-2 text-[12px] font-bold text-[#4e666f]">
-                                        Cashier : &nbsp; Adha (1)
+                                        Cashier : &nbsp; {{ $cashier }} (1)
                                     </td>
                                 </tr>
 

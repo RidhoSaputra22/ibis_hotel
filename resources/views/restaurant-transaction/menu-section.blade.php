@@ -54,7 +54,7 @@
         :sidebar="$sidebar"
         hotel-name="Ibis Makassar City Center"
         system-name="Front Office System"
-        username="ADHA"
+        :username="session('cashier_login.display_name', 'ADHA')"
         theme="dark"
     >
         <x-dashboard.cashier-menu-grid :master="$master" :transaction="$transaction" :batch="$batch" :reports="$reports" />

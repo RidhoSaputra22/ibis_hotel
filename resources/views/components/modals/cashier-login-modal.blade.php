@@ -1,14 +1,21 @@
 {{-- resources/views/components/cashier-login-modal.blade.php --}}
 @props([
     'id' => 'cashierLoginModal',
-    'cashier' => 'FBA-ADHA',
+    'cashier' => null,
     'outlets' => [
         'Ibis Kitchen',
         'Room Service',
         'Banquet',
     ],
-    'action' => '#',
+    'action' => route('cashier.login.store'),
 ])
+
+@php
+    $cashierLoginErrors = $errors->getBag('cashierLogin');
+    $resolvedCashier = old('cashier', $cashier ?? session('cashier_login.display_name', 'ADHA'));
+    $selectedOutlet = old('outlet', session('cashier_login.outlet', $outlets[0] ?? null));
+    $redirectTarget = old('redirect_to', url()->current());
+@endphp
 
 <style>
     #{{ $id }}::backdrop {
@@ -44,6 +51,7 @@
 
         <form method="POST" action="{{ $action }}" class="border-l-8 border-sky-500">
             @csrf
+            <input type="hidden" name="redirect_to" value="{{ $redirectTarget }}" data-login-redirect-input>
 
             <div class="grid grid-cols-1 lg:grid-cols-[1.12fr_.88fr]">
                 {{-- Kolom pemilihan outlet --}}
@@ -58,29 +66,45 @@
                         class="h-60 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
                     >
                         @foreach ($outlets as $index => $outlet)
-                            <option value="{{ $outlet }}" @selected($index === 0)>{{ $outlet }}</option>
+                            <option value="{{ $outlet }}" @selected($selectedOutlet === $outlet || ($selectedOutlet === null && $index === 0))>{{ $outlet }}</option>
                         @endforeach
                     </select>
 
                     <p class="mt-3 text-xs leading-relaxed text-slate-500">
                         Pilih outlet tempat kasir akan melakukan transaksi.
                     </p>
+
+                    @if ($cashierLoginErrors->has('outlet'))
+                        <p class="mt-2 text-xs font-medium text-rose-600">{{ $cashierLoginErrors->first('outlet') }}</p>
+                    @endif
                 </section>
 
                 {{-- Kolom autentikasi kasir --}}
                 <section class="p-6">
                     <div class="space-y-4">
+                        @if ($cashierLoginErrors->any())
+                            <div class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                                {{ $cashierLoginErrors->first() }}
+                            </div>
+                        @endif
+
                         <div class="grid gap-2 sm:grid-cols-[100px_1fr] sm:items-center">
                             <label for="{{ $id }}Cashier" class="text-sm font-semibold text-slate-700">Cashier</label>
                             <input
                                 id="{{ $id }}Cashier"
                                 name="cashier"
                                 type="text"
-                                value="{{ $cashier }}"
-                                readonly
-                                class="h-10 rounded-md border border-slate-300 bg-slate-100 px-3 text-sm font-medium text-slate-600 outline-none"
+                                value="{{ $resolvedCashier }}"
+                                required
+                                autocomplete="username"
+                                placeholder="Masukkan nama atau ID kasir"
+                                class="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
                             >
                         </div>
+
+                        @if ($cashierLoginErrors->has('cashier'))
+                            <p class="-mt-2 text-xs font-medium text-rose-600 sm:ml-[100px]">{{ $cashierLoginErrors->first('cashier') }}</p>
+                        @endif
 
                         <div class="grid gap-2 sm:grid-cols-[100px_1fr] sm:items-center">
                             <label for="{{ $id }}Password" class="text-sm font-semibold text-slate-700">Password</label>
@@ -116,11 +140,16 @@
                             </div>
                         </div>
 
+                        @if ($cashierLoginErrors->has('password'))
+                            <p class="-mt-2 text-xs font-medium text-rose-600 sm:ml-[100px]">{{ $cashierLoginErrors->first('password') }}</p>
+                        @endif
+
                         <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-600 sm:ml-[100px]">
                             <input
                                 type="checkbox"
                                 name="for_waiter"
                                 value="1"
+                                @checked(old('for_waiter', session('cashier_login.for_waiter', false)))
                                 class="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
                             >
                             <span>For Waiter</span>
@@ -175,8 +204,9 @@
             if (event.target === modal) modal.close();
         });
 
-       
+        if (@js($cashierLoginErrors->any()) && !modal.open && typeof modal.showModal === 'function') {
+            modal.showModal();
+        }
     })();
 </script>
-
 

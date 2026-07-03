@@ -3,6 +3,8 @@
     'items' => [],
     'color' => '#11a9ed',
     'gridClass' => 'grid-cols-2',
+    'requiresCashierLogin' => false,
+    'loginModal' => 'cashierLoginModal',
 ])
 
 <section>
@@ -15,6 +17,8 @@
                 :color="data_get($item, 'color', $color)"
                 :modal="data_get($item, 'modal')"
                 :href="data_get($item, 'href')"
+                :requires-cashier-login="$requiresCashierLogin"
+                :login-modal="$loginModal"
             />
         @endforeach
     </div>
