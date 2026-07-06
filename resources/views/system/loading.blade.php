@@ -1,17 +1,29 @@
-<x-layouts.app
-    title="Ibis Hotel Management System"
-    body-class="min-h-screen overflow-hidden bg-[#030811] font-sans text-slate-100 antialiased"
->
+<x-layouts.app title="Ibis Hotel Management System"
+    body-class="min-h-screen overflow-hidden bg-[#030811] font-sans text-slate-100 antialiased">
     @push('style')
         <style>
             @keyframes ibis-loader-progress {
-                from { width: 0%; }
-                to { width: 100%; }
+                from {
+                    width: 0%;
+                }
+
+                to {
+                    width: 100%;
+                }
             }
 
             @keyframes ibis-loader-pulse {
-                0%, 100% { opacity: .45; transform: scale(1); }
-                50% { opacity: 1; transform: scale(1.08); }
+
+                0%,
+                100% {
+                    opacity: .45;
+                    transform: scale(1);
+                }
+
+                50% {
+                    opacity: 1;
+                    transform: scale(1.08);
+                }
             }
 
             .ibis-sky {
@@ -32,8 +44,8 @@
                 position: absolute;
                 inset: 0;
                 background-image:
-                    radial-gradient(circle, rgba(255,255,255,.75) 0 1px, transparent 1px),
-                    radial-gradient(circle, rgba(255,255,255,.45) 0 1px, transparent 1px);
+                    radial-gradient(circle, rgba(255, 255, 255, .75) 0 1px, transparent 1px),
+                    radial-gradient(circle, rgba(255, 255, 255, .45) 0 1px, transparent 1px);
                 background-position: 0 0, 22px 28px;
                 background-size: 46px 46px, 58px 58px;
                 opacity: .28;
@@ -46,62 +58,44 @@
         </style>
     @endpush
 
-    <main class="relative min-h-screen overflow-hidden ibis-sky">
-        <div class="ibis-stars absolute inset-0"></div>
-        <div class="absolute inset-x-0 bottom-0 h-56 bg-[linear-gradient(180deg,transparent_0%,rgba(1,4,8,.1)_30%,rgba(1,4,8,.95)_100%)]"></div>
-        <div class="absolute bottom-0 left-0 h-40 w-72 rounded-tr-[120px] bg-[#05070c] blur-[1px]"></div>
-        <div class="absolute bottom-0 right-0 h-52 w-80 rounded-tl-[180px] bg-[#05070c] blur-[1px]"></div>
+    <main class="relative min-h-screen overflow-hidden flex items-center">
 
-        <div class="relative z-10 flex min-h-screen items-center justify-center px-6">
-            <section class="w-full max-w-3xl rounded-[28px] border border-white/10 bg-black/20 p-5 shadow-[0_30px_120px_rgba(0,0,0,.45)] backdrop-blur-sm">
-                <div class="mx-auto w-full max-w-2xl border border-[#cfd9d7] bg-[#f9fdf8] px-8 py-10 shadow-[0_28px_50px_rgba(3,11,19,.35)]">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <span class="h-3 w-3 rounded-full bg-[#9e5d55]/80"></span>
-                            <span class="h-3 w-3 rounded-full bg-[#94836b]/75"></span>
-                            <span class="h-3 w-3 rounded-full bg-[#b3a85f]/75"></span>
-                        </div>
-                        <span class="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#70818a]">System Boot</span>
-                    </div>
-
-                    <div class="mt-16 text-center">
-                        <p class="font-serif text-[72px] italic leading-none text-[#8f3877] sm:text-[92px]">Rhapsody</p>
-                        <p class="mt-2 text-lg font-semibold text-[#313e45]">ICT ONE Solution for Hospitality Management</p>
-                        <p class="mt-5 text-xs uppercase tracking-[0.35em] text-[#7f8e95]">Ibis Hotel Management System</p>
-                    </div>
-
-                    <div class="mt-14">
-                        <div class="flex items-center justify-between gap-4 text-[11px] text-[#5c6f77]">
-                            <span id="loadingStatus">Preparing cashier workspace...</span>
-                            <span id="loadingPercent" class="font-bold text-[#8f3877]">0%</span>
-                        </div>
-                        <div class="mt-2 h-3 overflow-hidden border border-[#b9d0d9] bg-white/90 shadow-[inset_0_1px_2px_rgba(15,23,42,.08)]">
-                            <div
-                                class="h-full bg-[linear-gradient(90deg,#4f87c0_0%,#7db7f1_45%,#3a70a3_100%)] shadow-[0_0_15px_rgba(59,130,246,.35)]"
-                                style="animation: ibis-loader-progress {{ max(600, $delayMs) }}ms linear forwards;"
-                                id="loadingBar"
-                            ></div>
-                        </div>
-                        <p class="mt-3 text-[11px] text-[#8798a0]">
-                            Downloading cashier modules, session profile, and report workspace.
-                        </p>
-                    </div>
+        <div
+            class="mx-auto w-full max-w-2xl border border-[#cfd9d7] bg-[#f9fdf8] px-8 py-10 shadow-[0_28px_50px_rgba(3,11,19,.35)]">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="h-3 w-3 rounded-full bg-[#9e5d55]/80"></span>
+                    <span class="h-3 w-3 rounded-full bg-[#94836b]/75"></span>
+                    <span class="h-3 w-3 rounded-full bg-[#b3a85f]/75"></span>
                 </div>
-            </section>
-        </div>
+                <span class="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#70818a]">System Boot</span>
+            </div>
 
-        <div class="absolute left-6 top-6 flex items-center gap-3 text-white/75">
-            <div class="grid h-10 w-10 place-items-center rounded-xl border border-white/15 bg-white/10 text-sm font-black shadow-[0_10px_30px_rgba(0,0,0,.25)]">R</div>
-            <div>
-                <p class="text-sm font-semibold">Ibis Makassar City Center</p>
-                <p class="text-[11px] uppercase tracking-[0.22em] text-white/45">Front Office &amp; Cashier System</p>
+            <div class="mt-16 text-center">
+                <p class="font-serif text-[72px] italic leading-none text-[#8f3877] sm:text-[92px]">Rhapsody</p>
+                <p class="mt-2 text-lg font-semibold text-[#313e45]">ICT ONE Solution for Hospitality Management</p>
+                <p class="mt-5 text-xs uppercase tracking-[0.35em] text-[#7f8e95]">Ibis Hotel Management System</p>
+            </div>
+
+            <div class="mt-14">
+                <div class="flex items-center justify-between gap-4 text-[11px] text-[#5c6f77]">
+                    <span id="loadingStatus">Preparing cashier workspace...</span>
+                    <span id="loadingPercent" class="font-bold text-[#8f3877]">0%</span>
+                </div>
+                <div
+                    class="mt-2 h-3 overflow-hidden border border-[#b9d0d9] bg-white/90 shadow-[inset_0_1px_2px_rgba(15,23,42,.08)]">
+                    <div class="h-full bg-[linear-gradient(90deg,#4f87c0_0%,#7db7f1_45%,#3a70a3_100%)] shadow-[0_0_15px_rgba(59,130,246,.35)]"
+                        style="animation: ibis-loader-progress {{ max(600, $delayMs) }}ms linear forwards;"
+                        id="loadingBar"></div>
+                </div>
+                <p class="mt-3 text-[11px] text-[#8798a0]">
+                    Downloading cashier modules, session profile, and report workspace.
+                </p>
             </div>
         </div>
 
-        <div class="absolute bottom-6 right-6 flex items-center gap-2 text-[11px] text-white/50">
-            <span class="h-2 w-2 rounded-full bg-emerald-400" style="animation: ibis-loader-pulse 1.6s ease-in-out infinite;"></span>
-            <span>Session protected. Redirecting automatically.</span>
-        </div>
+
+
     </main>
 
     @push('scripts')

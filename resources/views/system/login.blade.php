@@ -23,7 +23,7 @@
             {{-- Bagian gambar hotel --}}
             <div class="relative min-h-[330px] overflow-hidden md:min-h-[540px]">
                 <img
-                    src="{{ asset('images/ibis-hotel.jpg') }}"
+                    src="{{ asset('images/ibis-hotel.jpeg') }}"
                     alt="Ibis Hotel"
                     class="absolute inset-0 h-full w-full object-cover object-center"
                 >

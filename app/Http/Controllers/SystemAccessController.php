@@ -24,6 +24,7 @@ class SystemAccessController extends Controller
         }
 
         return redirect()->to($this->resolveNextUrl($request));
+
     }
 
     public function create(Request $request): View|RedirectResponse
