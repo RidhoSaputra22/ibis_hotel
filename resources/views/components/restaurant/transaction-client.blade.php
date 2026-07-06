@@ -41,6 +41,7 @@
         const sessionStorageKey = `ibis-hotel:cashier-session:${cashierSession.sessionStartedAt}:${cashierSession.cashierCode}`;
         const transactionsStorageKey = `${sessionStorageKey}:transactions`;
         const sequenceStorageKey = `${sessionStorageKey}:sequence`;
+        const settledTransactionsStorageKey = 'ibis-hotel:restaurant:settled-transactions';
 
         if (!orderItemsBody || !grandTotal || !itemCountBadge) return;
 
@@ -84,17 +85,29 @@
             return text || fallback;
         }
 
-        function loadTransactions() {
+        function parseStorageArray(storageKey) {
             try {
-                const parsed = JSON.parse(localStorage.getItem(transactionsStorageKey) ?? '[]');
+                const parsed = JSON.parse(localStorage.getItem(storageKey) ?? '[]');
                 return Array.isArray(parsed) ? parsed : [];
             } catch (error) {
                 return [];
             }
         }
 
+        function loadTransactions() {
+            return parseStorageArray(transactionsStorageKey);
+        }
+
         function saveTransactions(transactions) {
             localStorage.setItem(transactionsStorageKey, JSON.stringify(transactions));
+        }
+
+        function loadSettledTransactions() {
+            return parseStorageArray(settledTransactionsStorageKey);
+        }
+
+        function saveSettledTransactions(transactions) {
+            localStorage.setItem(settledTransactionsStorageKey, JSON.stringify(transactions));
         }
 
         function loadSequenceState() {
@@ -254,6 +267,7 @@
 
         function persistCompletedTransaction(detail = {}) {
             const snapshot = buildOrderSnapshot();
+            const settledAt = new Date().toISOString();
             const payments = Array.isArray(detail.payments)
                 ? detail.payments.map((payment) => ({
                     label: payment.label ?? payment.paymentType ?? '-',
@@ -263,17 +277,28 @@
             const paymentBreakdown = buildPaymentBreakdown(payments);
             const transactionRecord = {
                 ...snapshot,
+                storageId: `${cashierSession.sessionStartedAt}:${snapshot.billNo}:${snapshot.transactionAt}`,
                 paymentType: detail.paymentType ?? snapshot.paymentType,
                 tips: Number(detail.tips ?? 0),
                 change: Number(detail.change ?? 0),
                 payments,
                 paymentBreakdown,
                 transactionCount: 1,
+                status: 'settled',
+                source: 'restaurant-transaction',
+                settledAt,
             };
-            const transactions = loadTransactions();
+            const transactions = [
+                ...loadTransactions().filter((transaction) => transaction?.storageId !== transactionRecord.storageId),
+                transactionRecord,
+            ];
+            const settledTransactions = [
+                ...loadSettledTransactions().filter((transaction) => transaction?.storageId !== transactionRecord.storageId),
+                transactionRecord,
+            ];
 
-            transactions.push(transactionRecord);
             saveTransactions(transactions);
+            saveSettledTransactions(settledTransactions);
 
             lastCompletedTransaction = transactionRecord;
 

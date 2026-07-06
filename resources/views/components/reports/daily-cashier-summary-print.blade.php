@@ -4,6 +4,7 @@
 ])
 
 @php
+    $sessionKey = 'ibis-hotel:cashier-session:' . session('cashier_login.logged_in_at', now()->toIso8601String()) . ':' . session('cashier_login.cashier', session('cashier_login.display_name', 'ADHA'));
     $isModal = $mode === 'modal';
     $rootId = $isModal ? $id . 'Root' : $id . 'Page';
     $viewportId = $id . 'Viewport';
@@ -12,8 +13,8 @@
     $rowsId = $id . 'Rows';
     $footerId = $id . 'Footer';
     $zoomInfoId = $id . 'ZoomInfo';
-    $sessionKey = 'ibis-hotel:cashier-session:' . session('cashier_login.logged_in_at', now()->toIso8601String()) . ':' . session('cashier_login.cashier', session('cashier_login.display_name', 'ADHA'));
-    $previewStorageKey = $sessionKey . ':daily-cashier-summary-preview';
+    $previewStorageKey = 'ibis-hotel:daily-cashier-summary-preview';
+    $legacyPreviewStorageKey = $sessionKey . ':daily-cashier-summary-preview';
 
     $initialRows = [];
 
@@ -307,6 +308,7 @@
         const totalSales = document.getElementById(@js($id . 'TotalSales'));
         const initialPayload = @json($initialPayload);
         const previewStorageKey = @json($previewStorageKey);
+        const legacyPreviewStorageKey = @json($legacyPreviewStorageKey);
 
         const currencyFormatter = new Intl.NumberFormat('id-ID', {
             style: 'currency',
@@ -325,13 +327,16 @@
 
         let zoomLevel = 1;
 
-        function loadStoredPreview() {
+        function loadPreviewFromStorage(storageKey) {
             try {
-                const parsed = JSON.parse(localStorage.getItem(previewStorageKey) ?? 'null');
+                const parsed = JSON.parse(localStorage.getItem(storageKey) ?? 'null');
                 return parsed && typeof parsed === 'object' ? parsed : null;
             } catch (error) {
                 return null;
             }
+        }
+        function loadStoredPreview() {
+            return loadPreviewFromStorage(previewStorageKey) ?? loadPreviewFromStorage(legacyPreviewStorageKey);
         }
 
         function storePreview(payload = {}) {
@@ -510,6 +515,13 @@
         window.addEventListener('daily-cashier-summary:print-preview', (event) => {
             storePreview(event.detail || {});
             openPreview(event.detail || {});
+        });
+        window.addEventListener('storage', (event) => {
+            if (![previewStorageKey, legacyPreviewStorageKey].includes(event.key ?? '')) {
+                return;
+            }
+
+            populate(loadStoredPreview() ?? initialPayload);
         });
 
         populate(loadStoredPreview() ?? initialPayload);

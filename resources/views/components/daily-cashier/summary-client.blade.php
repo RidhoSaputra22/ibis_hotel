@@ -37,8 +37,9 @@
         const reportFooter = document.getElementById('reportFooter');
         const browserPrintButton = document.getElementById('browserPrintButton');
         const sessionStorageKey = `ibis-hotel:cashier-session:${sessionStartedAt}:${cashierCode}`;
-        const transactionsStorageKey = `${sessionStorageKey}:transactions`;
-        const previewStorageKey = `${sessionStorageKey}:daily-cashier-summary-preview`;
+        const legacyTransactionsStorageKey = `${sessionStorageKey}:transactions`;
+        const transactionsStorageKey = 'ibis-hotel:restaurant:settled-transactions';
+        const previewStorageKey = 'ibis-hotel:daily-cashier-summary-preview';
         const outletNameToCode = Object.fromEntries(outletData.map((item) => [item.name, item.code]));
         const outletCodeToName = Object.fromEntries(outletData.map((item) => [item.code, item.name]));
         const outletIndexMap = Object.fromEntries(outletData.map((item, index) => [item.code, index]));
@@ -81,13 +82,74 @@
             printerName.disabled = !isPrinter;
             printerPropertiesButton.disabled = !isPrinter;
         }
-        function loadTransactions() {
+        function parseStorageArray(storageKey) {
             try {
-                const parsed = JSON.parse(localStorage.getItem(transactionsStorageKey) ?? '[]');
+                const parsed = JSON.parse(localStorage.getItem(storageKey) ?? '[]');
                 return Array.isArray(parsed) ? parsed : [];
             } catch (error) {
                 return [];
             }
+        }
+        function transactionIdentity(transaction, index = 0) {
+            const identity = String(
+                transaction.storageId
+                ?? transaction.settlementId
+                ?? [
+                    transaction.billNo,
+                    transaction.checkNo,
+                    transaction.transactionAt,
+                    transaction.cashierCode,
+                    transaction.outletCode,
+                    transaction.businessDate,
+                    transaction.total,
+                ].filter(Boolean).join(':')
+            );
+
+            return identity || `legacy-transaction-${index}`;
+        }
+        function loadLegacyTransactions() {
+            const transactions = [];
+
+            for (let index = 0; index < localStorage.length; index += 1) {
+                const storageKey = localStorage.key(index);
+
+                if (!storageKey?.startsWith('ibis-hotel:cashier-session:') || !storageKey.endsWith(':transactions')) {
+                    continue;
+                }
+
+                transactions.push(...parseStorageArray(storageKey));
+            }
+
+            return transactions;
+        }
+        function loadTransactions() {
+            const mergedTransactions = [
+                ...parseStorageArray(transactionsStorageKey),
+                ...parseStorageArray(legacyTransactionsStorageKey),
+                ...loadLegacyTransactions(),
+            ];
+            const deduplicatedTransactions = new Map();
+
+            mergedTransactions.forEach((transaction, index) => {
+                if (!transaction || typeof transaction !== 'object') {
+                    return;
+                }
+
+                const identity = transactionIdentity(transaction, index);
+
+                if (deduplicatedTransactions.has(identity)) {
+                    return;
+                }
+
+                deduplicatedTransactions.set(identity, {
+                    ...transaction,
+                    status: transaction.status ?? 'settled',
+                    source: transaction.source ?? 'restaurant-transaction',
+                    storageId: identity,
+                });
+            });
+
+            return [...deduplicatedTransactions.values()].filter((transaction) => transaction.status === 'settled');
         }
         function storeLastPreview(payload) {
             try {
@@ -248,7 +310,7 @@
                     const total = row.cash + row.card + row.other;
                     return `<tr class="border-b border-[#d7e3e6] hover:bg-[#f6fbfc]"><td class="border-r border-[#e0e9eb] px-3 py-2 font-semibold">${row.group}</td><td class="border-r border-[#e0e9eb] px-3 py-2 text-right">${rupiah(row.cash)}</td><td class="border-r border-[#e0e9eb] px-3 py-2 text-right">${rupiah(row.card)}</td><td class="border-r border-[#e0e9eb] px-3 py-2 text-right">${rupiah(row.other)}</td><td class="border-r border-[#e0e9eb] px-3 py-2 text-right">${row.transaction}</td><td class="px-3 py-2 text-right font-bold text-[#3c6b7b]">${rupiah(total)}</td></tr>`;
                 }).join('')
-                : '<tr><td colspan="6" class="px-3 py-8 text-center text-[#7d9097]">Tidak ada transaksi sesi untuk filter yang dipilih.</td></tr>';
+                : '<tr><td colspan="6" class="px-3 py-8 text-center text-[#7d9097]">Tidak ada transaksi settle untuk filter yang dipilih.</td></tr>';
             reportFooter.innerHTML = `<tr><td class="border-r border-[#c7d7db] px-3 py-2">TOTAL</td><td class="border-r border-[#c7d7db] px-3 py-2 text-right">${rupiah(totalCash)}</td><td class="border-r border-[#c7d7db] px-3 py-2 text-right">${rupiah(totalCard)}</td><td class="border-r border-[#c7d7db] px-3 py-2 text-right">${rupiah(totalOther)}</td><td class="border-r border-[#c7d7db] px-3 py-2 text-right">${totalTransaction}</td><td class="px-3 py-2 text-right">${rupiah(totalSales)}</td></tr>`;
             emptyReportState.classList.add('hidden');
             reportContainer.classList.remove('hidden');
@@ -326,7 +388,12 @@
             updateCashierNames();
         });
         window.addEventListener('storage', (event) => {
-            if (event.key !== transactionsStorageKey || reportContainer.classList.contains('hidden')) {
+            const storageKey = event.key ?? '';
+            const isTransactionUpdate = storageKey === transactionsStorageKey
+                || storageKey === legacyTransactionsStorageKey
+                || (storageKey.startsWith('ibis-hotel:cashier-session:') && storageKey.endsWith(':transactions'));
+
+            if (!isTransactionUpdate || reportContainer.classList.contains('hidden')) {
                 return;
             }
 
