@@ -371,9 +371,14 @@
         const confirmPrintModal = document.getElementById(@js($id . 'ConfirmPrint'));
         const printingModal = document.getElementById(@js($id . 'Printing'));
 
-        const totalAmount = Number(@js((float) $totalAmount));
+        const defaultBillNo = @js($billNo);
+        const defaultTotalAmount = Number(@js((float) $totalAmount));
         const currency = @js($currency);
 
+        let billNo = defaultBillNo;
+        let totalAmount = defaultTotalAmount;
+
+        const billNoInput = document.getElementById(@js($id . 'BillNo'));
         const totalInput = document.getElementById(@js($id . 'TotalAmount'));
         const remainingInput = document.getElementById(@js($id . 'Remaining'));
         const paymentAmountInput = document.getElementById(@js($id . 'PaymentAmount'));
@@ -542,11 +547,15 @@
             `).join('');
         }
 
-        function resetSettlement() {
+        function resetSettlement(message = 'Pembayaran dibatalkan. Data kembali ke kondisi awal.') {
             remaining = totalAmount;
             paymentRecords = [];
             selectedMethod = 'CASH';
             selectedCard = '';
+
+            if (billNoInput) {
+                billNoInput.value = billNo;
+            }
 
             updateAmountInputs();
             paymentAmountInput.value = formatMoney(remaining);
@@ -556,7 +565,19 @@
             selectMethod('CASH');
             renderPaymentList();
 
-            setStatus('Pembayaran dibatalkan. Data kembali ke kondisi awal.');
+            setStatus(message);
+        }
+
+        function applySettlementContext(payload = {}) {
+            const nextBillNo = String(payload.billNo ?? defaultBillNo).trim();
+            const nextTotalAmount = Number(payload.totalAmount ?? defaultTotalAmount);
+
+            billNo = nextBillNo || defaultBillNo;
+            totalAmount = Number.isFinite(nextTotalAmount) && nextTotalAmount >= 0
+                ? nextTotalAmount
+                : defaultTotalAmount;
+
+            resetSettlement('Tagihan siap diproses.');
         }
 
         function closeAllChildren() {
@@ -687,14 +708,14 @@
 
             window.dispatchEvent(new CustomEvent('settlement-updated', {
                 detail: {
-                    billNo: document.getElementById(@js($id . 'BillNo')).value,
+                    billNo: billNoInput?.value ?? billNo,
                     paymentType: paymentLabel,
                     enteredAmount,
                     acceptedAmount,
                     tips,
                     remaining,
                     change,
-                    payments: paymentRecords,
+                    payments: paymentRecords.map((payment) => ({ ...payment })),
                 }
             }));
 
@@ -716,12 +737,12 @@
 
             window.dispatchEvent(new CustomEvent('settlement-completed', {
                 detail: {
-                    billNo: document.getElementById(@js($id . 'BillNo')).value,
+                    billNo: billNoInput?.value ?? billNo,
                     totalAmount,
                     paymentType: paymentLabel,
                     tips,
                     change,
-                    payments: paymentRecords,
+                    payments: paymentRecords.map((payment) => ({ ...payment })),
                 }
             }));
 
@@ -742,6 +763,7 @@
 
         modal.addEventListener('close', () => {
             closeAllChildren();
+            resetSettlement();
         });
 
         cardLookupModal.querySelectorAll('[data-card-lookup-close]').forEach((button) => {
@@ -822,8 +844,8 @@
 
             window.dispatchEvent(new CustomEvent('settlement-print-requested', {
                 detail: {
-                    billNo: document.getElementById(@js($id . 'BillNo')).value,
-                    payments: paymentRecords,
+                    billNo: billNoInput?.value ?? billNo,
+                    payments: paymentRecords.map((payment) => ({ ...payment })),
                 }
             }));
 
@@ -866,11 +888,12 @@
             });
         });
 
-        updateAmountInputs();
-        paymentAmountInput.value = formatMoney(remaining);
-        renderPaymentList();
+        window.addEventListener('settlement:configure', (event) => {
+            applySettlementContext(event.detail || {});
+        });
+
         activateTab('general');
-        selectMethod('CASH');
+        applySettlementContext();
 
     })();
 </script>

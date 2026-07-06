@@ -22,6 +22,7 @@
         ],
     ],
 
+    'discount' => 0,
     'service' => 1653,
     'tax' => 1810,
 ])
@@ -31,7 +32,22 @@
         return $item['qty'] * $item['price'];
     });
 
-    $grandTotal = $subTotal + $service + $tax;
+    $grandTotal = $subTotal - $discount + $service + $tax;
+    $initialPayload = [
+        'outlet' => $outlet,
+        'date' => $date,
+        'tableNo' => $tableNo,
+        'checkNo' => $checkNo,
+        'cashier' => $cashier,
+        'paymentType' => $paymentType,
+        'pax' => $pax,
+        'items' => $items,
+        'subTotal' => $subTotal,
+        'discount' => $discount,
+        'service' => $service,
+        'tax' => $tax,
+        'grandTotal' => $grandTotal,
+    ];
 @endphp
 
 <style>
@@ -100,22 +116,22 @@
                     class="min-h-full w-[560px] bg-white px-6 py-7 font-mono text-[11px] leading-[1.55] text-[#3f4d52] shadow-md"
                 >
                     <div class="whitespace-pre">
-{{ $outlet }}
+<span id="{{ $id }}Outlet">{{ $outlet }}</span>
 
-Date      : {{ $date }}
+Date      : <span id="{{ $id }}Date">{{ $date }}</span>
 
 ========================================
 
-Table No  : {{ $tableNo }}
-Check #   : {{ $checkNo }}
-Cashier   : {{ $cashier }}
-Pmt.Type  : {{ $paymentType }}
-Pax       : {{ $pax }}
+Table No  : <span id="{{ $id }}TableNo">{{ $tableNo }}</span>
+Check #   : <span id="{{ $id }}CheckNo">{{ $checkNo }}</span>
+Cashier   : <span id="{{ $id }}Cashier">{{ $cashier }}</span>
+Pmt.Type  : <span id="{{ $id }}PaymentType">{{ $paymentType }}</span>
+Pax       : <span id="{{ $id }}Pax">{{ $pax }}</span>
 
 ========================================
                     </div>
 
-                    <div class="grid grid-cols-[35px_1fr_90px] gap-x-2">
+                    <div id="{{ $id }}Items" class="grid grid-cols-[35px_1fr_90px] gap-x-2">
                         @foreach ($items as $item)
                             <span>{{ $item['qty'] }}</span>
                             <span>{{ $item['name'] }}</span>
@@ -127,14 +143,14 @@ Pax       : {{ $pax }}
 
                     <div class="mt-2 whitespace-pre">
 ========================================
-Sub Total : {{ number_format($subTotal, 0, ',', '.') }}
-Discount  : 0
-Service   : {{ number_format($service, 0, ',', '.') }}
-Tax       : {{ number_format($tax, 0, ',', '.') }}
+Sub Total : <span id="{{ $id }}SubTotal">{{ number_format($subTotal, 0, ',', '.') }}</span>
+Discount  : <span id="{{ $id }}Discount">{{ number_format($discount, 0, ',', '.') }}</span>
+Service   : <span id="{{ $id }}Service">{{ number_format($service, 0, ',', '.') }}</span>
+Tax       : <span id="{{ $id }}Tax">{{ number_format($tax, 0, ',', '.') }}</span>
 ----------------------------------------
-Total     : {{ number_format($grandTotal, 0, ',', '.') }}
+Total     : <span id="{{ $id }}GrandTotal">{{ number_format($grandTotal, 0, ',', '.') }}</span>
 
-{{ $date }} {{ $cashier }}
+<span id="{{ $id }}FooterLine">{{ $date }} {{ $cashier }}</span>
 
 Thank you for dining with us.
                     </div>
@@ -196,20 +212,111 @@ Thank you for dining with us.
         modal.dataset.ready = 'true';
 
         const receipt = document.getElementById(@js($id . 'Receipt'));
+        const outletField = document.getElementById(@js($id . 'Outlet'));
+        const dateField = document.getElementById(@js($id . 'Date'));
+        const tableNoField = document.getElementById(@js($id . 'TableNo'));
+        const checkNoField = document.getElementById(@js($id . 'CheckNo'));
+        const cashierField = document.getElementById(@js($id . 'Cashier'));
+        const paymentTypeField = document.getElementById(@js($id . 'PaymentType'));
+        const paxField = document.getElementById(@js($id . 'Pax'));
+        const itemsField = document.getElementById(@js($id . 'Items'));
+        const subTotalField = document.getElementById(@js($id . 'SubTotal'));
+        const discountField = document.getElementById(@js($id . 'Discount'));
+        const serviceField = document.getElementById(@js($id . 'Service'));
+        const taxField = document.getElementById(@js($id . 'Tax'));
+        const grandTotalField = document.getElementById(@js($id . 'GrandTotal'));
+        const footerLineField = document.getElementById(@js($id . 'FooterLine'));
         const zoomInfo = document.getElementById(@js($id . 'ZoomInfo'));
 
         const printButton = document.getElementById(@js($id . 'Print'));
         const previewButton = document.getElementById(@js($id . 'Preview'));
         const zoomInButton = document.getElementById(@js($id . 'ZoomIn'));
         const zoomOutButton = document.getElementById(@js($id . 'ZoomOut'));
+        const initialPayload = @json($initialPayload);
 
         let zoomLevel = 1;
+
+        function formatAmount(value) {
+            return new Intl.NumberFormat('id-ID', {
+                maximumFractionDigits: 0,
+            }).format(Number(value ?? 0));
+        }
+
+        function escapeHtml(value = '') {
+            return String(value).replace(/[&<>"']/g, (char) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;',
+            }[char]));
+        }
 
         function updateZoom() {
             receipt.style.transformOrigin = 'top left';
             receipt.style.transform = `scale(${zoomLevel})`;
 
             zoomInfo.textContent = `Zoom: ${Math.round(zoomLevel * 100)}%`;
+        }
+
+        function normalizePayload(payload = {}) {
+            const items = Array.isArray(payload.items)
+                ? payload.items.map((item) => ({
+                    qty: Number(item.qty ?? 0),
+                    name: item.name ?? '-',
+                    price: Number(item.price ?? 0),
+                }))
+                : initialPayload.items;
+            const subTotal = Number(payload.subTotal ?? items.reduce((sum, item) => sum + (item.qty * item.price), 0));
+            const discount = Number(payload.discount ?? initialPayload.discount ?? 0);
+            const service = Number(payload.service ?? initialPayload.service ?? 0);
+            const tax = Number(payload.tax ?? initialPayload.tax ?? 0);
+
+            return {
+                outlet: payload.outlet ?? initialPayload.outlet,
+                date: payload.date ?? initialPayload.date,
+                tableNo: payload.tableNo ?? initialPayload.tableNo,
+                checkNo: payload.checkNo ?? initialPayload.checkNo,
+                cashier: payload.cashier ?? initialPayload.cashier,
+                paymentType: payload.paymentType ?? initialPayload.paymentType,
+                pax: Number(payload.pax ?? initialPayload.pax ?? 1),
+                items,
+                subTotal,
+                discount,
+                service,
+                tax,
+                grandTotal: Number(payload.grandTotal ?? (subTotal - discount + service + tax)),
+            };
+        }
+
+        function populate(payload = {}) {
+            const data = normalizePayload(payload);
+
+            outletField.textContent = data.outlet;
+            dateField.textContent = data.date;
+            tableNoField.textContent = data.tableNo;
+            checkNoField.textContent = data.checkNo;
+            cashierField.textContent = data.cashier;
+            paymentTypeField.textContent = data.paymentType;
+            paxField.textContent = String(data.pax);
+            subTotalField.textContent = formatAmount(data.subTotal);
+            discountField.textContent = formatAmount(data.discount);
+            serviceField.textContent = formatAmount(data.service);
+            taxField.textContent = formatAmount(data.tax);
+            grandTotalField.textContent = formatAmount(data.grandTotal);
+            footerLineField.textContent = `${data.date} ${data.cashier}`;
+
+            itemsField.innerHTML = data.items.length > 0
+                ? data.items.map((item) => `
+                    <span>${item.qty}</span>
+                    <span>${escapeHtml(item.name)}</span>
+                    <span class="text-right">${formatAmount(item.qty * item.price)}</span>
+                `).join('')
+                : `
+                    <span></span>
+                    <span class="text-slate-400">Tidak ada item.</span>
+                    <span></span>
+                `;
         }
 
         modal.querySelectorAll('[data-close-print-billing]').forEach((button) => {
@@ -253,6 +360,17 @@ Thank you for dining with us.
             }
         });
 
-      
+        window.addEventListener('print-billing:preview', (event) => {
+            populate(event.detail || {});
+            zoomLevel = 1;
+            updateZoom();
+
+            if (!modal.open && typeof modal.showModal === 'function') {
+                modal.showModal();
+            }
+        });
+
+        populate(initialPayload);
+        updateZoom();
     })();
 </script>

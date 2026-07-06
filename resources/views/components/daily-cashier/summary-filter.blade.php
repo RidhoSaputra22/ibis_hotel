@@ -7,7 +7,7 @@
     <div class="space-y-4">
         <div class="grid grid-cols-[70px_1fr] items-center gap-3">
             <label for="summaryDate" class="form-label">Date</label>
-            <input id="summaryDate" type="date" value="2026-06-15" class="form-control max-w-[170px]">
+            <input id="summaryDate" type="date" value="{{ now()->format('Y-m-d') }}" class="form-control max-w-[170px]">
         </div>
         <div class="grid grid-cols-[70px_1fr] items-start gap-3">
             <span class="form-label pt-1">Group by</span>

@@ -14,11 +14,39 @@
         const orderTabs = [...document.querySelectorAll('.order-tab')];
         const waiterModal = document.getElementById('waiterModal');
         const waiterInput = document.getElementById('waiterInput');
+        const paxInput = document.getElementById('paxInput');
+        const guestNameInput = document.getElementById('guestNameInput');
+        const chargeGuestNameInput = document.getElementById('chargeGuestNameInput');
+        const roomChargeReferenceInput = document.getElementById('roomChargeReferenceInput');
+        const discountTypeInput = document.getElementById('discountTypeInput');
+        const docNoInput = document.getElementById('docNoInput');
+        const timeZoneInput = document.getElementById('timeZoneInput');
+        const groupChargeInput = document.getElementById('groupChargeInput');
         const activeTableTab = document.getElementById('transactionTableTab');
+        const billingButtons = [...document.querySelectorAll('[data-open-dialog="printBillingModal"]')];
+        const settleButtons = [...document.querySelectorAll('[data-open-dialog="settleModal"]')];
+        const cashierSession = {
+            cashierCode: @json(session('cashier_login.cashier', session('cashier_login.display_name', 'ADHA'))),
+            cashierName: @json(session('cashier_login.display_name', 'ADHA')),
+            outletName: @json(session('cashier_login.outlet', 'Ibis Kitchen')),
+            sessionStartedAt: @json(session('cashier_login.logged_in_at', now()->toIso8601String())),
+        };
+        const outletCodeMap = {
+            'Ibis Kitchen': '10',
+            'Restaurant Terrace': '20',
+            'Room Service': '30',
+            'Banquet': '40',
+            'Pool Bar': '50',
+        };
+        const sessionStorageKey = `ibis-hotel:cashier-session:${cashierSession.sessionStartedAt}:${cashierSession.cashierCode}`;
+        const transactionsStorageKey = `${sessionStorageKey}:transactions`;
+        const sequenceStorageKey = `${sessionStorageKey}:sequence`;
 
         if (!orderItemsBody || !grandTotal || !itemCountBadge) return;
 
         let activeCategory = categoryButtons[0]?.dataset.category ?? 'Appetizer';
+        let currentDraftIdentity = null;
+        let lastCompletedTransaction = null;
 
         function formatRupiah(number) {
             return new Intl.NumberFormat('id-ID', {
@@ -28,12 +56,252 @@
             }).format(number);
         }
 
+        function formatShortDateTime(date) {
+            const datePart = new Intl.DateTimeFormat('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+            }).format(date).replace(/ /g, '-');
+            const timePart = new Intl.DateTimeFormat('en-GB', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+            }).format(date);
+
+            return `${datePart} ${timePart}`;
+        }
+
+        function toBusinessDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+
+            return `${year}-${month}-${day}`;
+        }
+
+        function normalizeText(value, fallback = '-') {
+            const text = String(value ?? '').trim();
+            return text || fallback;
+        }
+
+        function loadTransactions() {
+            try {
+                const parsed = JSON.parse(localStorage.getItem(transactionsStorageKey) ?? '[]');
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (error) {
+                return [];
+            }
+        }
+
+        function saveTransactions(transactions) {
+            localStorage.setItem(transactionsStorageKey, JSON.stringify(transactions));
+        }
+
+        function loadSequenceState() {
+            try {
+                const parsed = JSON.parse(localStorage.getItem(sequenceStorageKey) ?? '{}');
+                return parsed && typeof parsed === 'object' ? parsed : {};
+            } catch (error) {
+                return {};
+            }
+        }
+
+        function nextDocumentNumber(key, seed) {
+            const sequenceState = loadSequenceState();
+            const nextNumber = Number(sequenceState[key] ?? seed);
+
+            sequenceState[key] = nextNumber + 1;
+            localStorage.setItem(sequenceStorageKey, JSON.stringify(sequenceState));
+
+            return String(nextNumber).padStart(10, '0');
+        }
+
+        function ensureDraftIdentity() {
+            if (!currentDraftIdentity) {
+                currentDraftIdentity = {
+                    checkNo: nextDocumentNumber('checkNo', 24358),
+                    billNo: nextDocumentNumber('billNo', 24593),
+                };
+            }
+
+            return currentDraftIdentity;
+        }
+
+        function extractTableNo() {
+            return normalizeText(
+                activeTableTab?.textContent?.replace(/^TABLE\s*/i, ''),
+                '01'
+            );
+        }
+
+        function calculateBill(items) {
+            const subTotal = items.reduce((sum, item) => sum + (Number(item.price) * Number(item.qty)), 0);
+            const discount = 0;
+            const service = Math.round(subTotal * 0.10);
+            const tax = Math.round(subTotal * 0.11);
+
+            return {
+                subTotal,
+                discount,
+                service,
+                tax,
+                total: subTotal - discount + service + tax,
+            };
+        }
+
+        function classifyPayment(label = '') {
+            const normalized = String(label).toUpperCase();
+
+            if (normalized.includes('CASH')) {
+                return 'cash';
+            }
+
+            if (
+                normalized.includes('CARD')
+                || normalized.includes('QRIS')
+                || normalized.includes('VISA')
+                || normalized.includes('MASTER')
+                || normalized.includes('DEBIT')
+            ) {
+                return 'card';
+            }
+
+            return 'other';
+        }
+
+        function buildPaymentBreakdown(payments = []) {
+            return payments.reduce((totals, payment) => {
+                const bucket = classifyPayment(payment.label ?? payment.paymentType ?? '');
+                const amount = Number(payment.amount ?? 0);
+
+                totals[bucket] += amount;
+
+                return totals;
+            }, { cash: 0, card: 0, other: 0 });
+        }
+
+        function buildOrderSnapshot() {
+            const identity = ensureDraftIdentity();
+            const now = new Date();
+            const bill = calculateBill(orderItems);
+
+            return {
+                outletCode: outletCodeMap[cashierSession.outletName] ?? '10',
+                outletName: cashierSession.outletName,
+                cashierCode: cashierSession.cashierCode,
+                cashierName: cashierSession.cashierName,
+                waiter: normalizeText(waiterInput?.value, cashierSession.cashierName),
+                guestName: normalizeText(guestNameInput?.value, '-'),
+                chargeGuestName: normalizeText(chargeGuestNameInput?.value, guestNameInput?.value || '-'),
+                roomReference: normalizeText(roomChargeReferenceInput?.value, '-'),
+                discountType: normalizeText(discountTypeInput?.value, 'Full Payment'),
+                docNo: normalizeText(docNoInput?.value, '01'),
+                timeZone: normalizeText(timeZoneInput?.value, 'Breakfast'),
+                groupCharge: normalizeText(groupChargeInput?.value, 'F&B'),
+                tableNo: extractTableNo(),
+                checkNo: identity.checkNo,
+                billNo: identity.billNo,
+                pax: Math.max(1, Number(paxInput?.value || 1)),
+                paymentType: 'Full',
+                businessDate: toBusinessDate(now),
+                printedDate: formatShortDateTime(now),
+                transactionAt: now.toISOString(),
+                items: orderItems.map((item) => ({
+                    name: item.name,
+                    price: Number(item.price),
+                    qty: Number(item.qty),
+                })),
+                ...bill,
+            };
+        }
+
+        function buildBillingPayload(source = null) {
+            const snapshot = source ?? (orderItems.length ? buildOrderSnapshot() : lastCompletedTransaction);
+
+            if (!snapshot) {
+                return null;
+            }
+
+            return {
+                outlet: snapshot.outletName ?? cashierSession.outletName,
+                date: snapshot.printedDate ?? formatShortDateTime(new Date(snapshot.transactionAt ?? Date.now())),
+                tableNo: snapshot.tableNo ?? extractTableNo(),
+                checkNo: snapshot.checkNo ?? ensureDraftIdentity().checkNo,
+                cashier: snapshot.cashierCode ?? cashierSession.cashierCode,
+                paymentType: snapshot.paymentType ?? 'Full',
+                pax: snapshot.pax ?? 1,
+                items: Array.isArray(snapshot.items) ? snapshot.items.map((item) => ({
+                    qty: Number(item.qty ?? 0),
+                    name: item.name ?? '-',
+                    price: Number(item.price ?? 0),
+                })) : [],
+                subTotal: Number(snapshot.subTotal ?? 0),
+                discount: Number(snapshot.discount ?? 0),
+                service: Number(snapshot.service ?? 0),
+                tax: Number(snapshot.tax ?? 0),
+                grandTotal: Number(snapshot.total ?? snapshot.grandTotal ?? 0),
+            };
+        }
+
+        function buildSettlementConfig() {
+            const snapshot = buildOrderSnapshot();
+
+            return {
+                billNo: snapshot.billNo,
+                totalAmount: snapshot.total,
+            };
+        }
+
+        function persistCompletedTransaction(detail = {}) {
+            const snapshot = buildOrderSnapshot();
+            const payments = Array.isArray(detail.payments)
+                ? detail.payments.map((payment) => ({
+                    label: payment.label ?? payment.paymentType ?? '-',
+                    amount: Number(payment.amount ?? 0),
+                }))
+                : [];
+            const paymentBreakdown = buildPaymentBreakdown(payments);
+            const transactionRecord = {
+                ...snapshot,
+                paymentType: detail.paymentType ?? snapshot.paymentType,
+                tips: Number(detail.tips ?? 0),
+                change: Number(detail.change ?? 0),
+                payments,
+                paymentBreakdown,
+                transactionCount: 1,
+            };
+            const transactions = loadTransactions();
+
+            transactions.push(transactionRecord);
+            saveTransactions(transactions);
+
+            lastCompletedTransaction = transactionRecord;
+
+            return transactionRecord;
+        }
+
+        function resetOrder() {
+            orderItems.splice(0, orderItems.length);
+            currentDraftIdentity = null;
+
+            if (guestNameInput) guestNameInput.value = '';
+            if (chargeGuestNameInput) chargeGuestNameInput.value = '';
+            if (roomChargeReferenceInput) roomChargeReferenceInput.value = '';
+            if (paxInput) paxInput.value = 1;
+
+            renderOrder();
+        }
+
         function renderOrder() {
             const totalQty = orderItems.reduce((sum, item) => sum + item.qty, 0);
             const total = orderItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
             itemCountBadge.textContent = `${totalQty} item`;
             grandTotal.textContent = formatRupiah(total);
+
+            if (orderItems.length === 0) {
+                currentDraftIdentity = null;
+            }
 
             if (orderItems.length === 0) {
                 orderItemsBody.innerHTML = `
@@ -152,27 +420,25 @@
 
         document.getElementById('clearOrderButton')?.addEventListener('click', () => {
             if (orderItems.length === 0 || window.confirm('Hapus semua item pesanan?')) {
-                orderItems.splice(0, orderItems.length);
-                renderOrder();
+                resetOrder();
             }
         });
 
         document.getElementById('cancelOrderButton')?.addEventListener('click', () => {
             if (window.confirm('Batalkan transaksi ini?')) {
-                orderItems.splice(0, orderItems.length);
-                document.getElementById('guestNameInput').value = '';
-                document.getElementById('paxInput').value = 1;
-                renderOrder();
+                resetOrder();
             }
         });
 
         document.getElementById('saveOrderButton')?.addEventListener('click', () => {
-            const total = orderItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
             if (!orderItems.length) {
                 window.alert('Silakan tambahkan service terlebih dahulu.');
                 return;
             }
-            window.alert(`Pesanan disimpan.\nTotal: ${formatRupiah(total)}`);
+
+            const snapshot = buildOrderSnapshot();
+
+            window.alert(`Pesanan disimpan.\nCheck #: ${snapshot.checkNo}\nTotal: ${formatRupiah(snapshot.total)}`);
         });
 
         document.getElementById('addOrderButton')?.addEventListener('click', () => serviceSearch?.focus());
@@ -199,6 +465,48 @@
             if (nameField) nameField.value = event.detail.description ?? '';
             if (referenceField) referenceField.value = event.detail.folioNo ?? '';
         });
+
+        billingButtons.forEach((button) => {
+            button.addEventListener('click', (event) => {
+                const payload = buildBillingPayload();
+
+                if (!payload) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    window.alert('Belum ada transaksi yang bisa dicetak.');
+                    return;
+                }
+
+                window.dispatchEvent(new CustomEvent('print-billing:preview', {
+                    detail: payload,
+                }));
+            });
+        });
+
+        settleButtons.forEach((button) => {
+            button.addEventListener('click', (event) => {
+                if (!orderItems.length) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    window.alert('Silakan tambahkan service terlebih dahulu.');
+                    return;
+                }
+
+                window.dispatchEvent(new CustomEvent('settlement:configure', {
+                    detail: buildSettlementConfig(),
+                }));
+            });
+        });
+
+        window.addEventListener('settlement-completed', (event) => {
+            persistCompletedTransaction(event.detail || {});
+            resetOrder();
+        });
+
+        const existingTransactions = loadTransactions();
+        lastCompletedTransaction = existingTransactions.length > 0
+            ? existingTransactions[existingTransactions.length - 1]
+            : null;
 
         filterServices();
         renderOrder();

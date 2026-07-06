@@ -44,16 +44,6 @@
     <x-daily-cashier.printer-properties-modal />
     <x-modals.cashier-login-modal id="cashierLoginModal" />
     <x-modals.cashier-lookup-modal id="cashierLookupModal" :cashiers="$cashierLookupRows" />
+    <x-reports.daily-cashier-summary-print id="dailyCashierSummaryPrintModal" />
     <x-daily-cashier.summary-client :outlets="$outlets" :cashiers="$cashiers" />
-
-    @push('style')
-        <style>
-            @media print {
-                body * { visibility: hidden; }
-                #reportContainer, #reportContainer * { visibility: visible; }
-                #reportContainer { position: fixed; inset: 0; display: block !important; width: 100%; background: white; }
-                #browserPrintButton { display: none; }
-            }
-        </style>
-    @endpush
 </x-layouts.app>

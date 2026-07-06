@@ -4,16 +4,16 @@
 
         <div class="grid gap-2 sm:grid-cols-2">
             <x-forms.legacy-field label="Discount Type">
-                <x-forms.legacy-select :options="['Full Payment', 'Percentage', 'Nominal']" selected="Full Payment" />
+                <x-forms.legacy-select id="discountTypeInput" :options="['Full Payment', 'Percentage', 'Nominal']" selected="Full Payment" />
             </x-forms.legacy-field>
             <x-forms.legacy-field label="Doc. No">
-                <x-forms.legacy-input value="01" readonly />
+                <x-forms.legacy-input id="docNoInput" value="01" readonly />
             </x-forms.legacy-field>
             <x-forms.legacy-field label="PAX" for="paxInput">
                 <x-forms.legacy-input id="paxInput" type="number" min="1" value="1" />
             </x-forms.legacy-field>
             <x-forms.legacy-field label="Waiter" for="waiterInput">
-                <x-forms.legacy-input id="waiterInput" value="ADHA" />
+                <x-forms.legacy-input id="waiterInput" :value="session('cashier_login.display_name', 'ADHA')" />
             </x-forms.legacy-field>
             <x-forms.legacy-field label="Guest Name" for="guestNameInput" class="sm:col-span-2">
                 <x-forms.legacy-input id="guestNameInput" placeholder="Masukkan nama tamu" />
@@ -36,8 +36,8 @@
             </div>
         </x-forms.legacy-field>
         <x-forms.legacy-field label="Name"><x-forms.legacy-input id="chargeGuestNameInput" placeholder="Nama tamu" /></x-forms.legacy-field>
-        <x-forms.legacy-field label="Time Zone"><x-forms.legacy-select :options="['Breakfast', 'Lunch', 'Dinner']" selected="Breakfast" /></x-forms.legacy-field>
-        <x-forms.legacy-field label="Group of Chg"><x-forms.legacy-select :options="['F&B', 'Room Charge', 'Cash']" selected="F&B" /></x-forms.legacy-field>
+        <x-forms.legacy-field label="Time Zone"><x-forms.legacy-select id="timeZoneInput" :options="['Breakfast', 'Lunch', 'Dinner']" selected="Breakfast" /></x-forms.legacy-field>
+        <x-forms.legacy-field label="Group of Chg"><x-forms.legacy-select id="groupChargeInput" :options="['F&B', 'Room Charge', 'Cash']" selected="F&B" /></x-forms.legacy-field>
     </div>
 
     <x-restaurant.order-items-panel />
