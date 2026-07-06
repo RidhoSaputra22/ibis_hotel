@@ -2,17 +2,13 @@
 @props([
     'id' => 'cashierLoginModal',
     'cashier' => null,
-    'outlets' => [
-        'Ibis Kitchen',
-        'Room Service',
-        'Banquet',
-    ],
+    'outlets' => collect(config('cashier.outlets', []))->pluck('name')->all(),
     'action' => route('cashier.login.store'),
 ])
 
 @php
     $cashierLoginErrors = $errors->getBag('cashierLogin');
-    $resolvedCashier = old('cashier', $cashier ?? session('cashier_login.display_name', 'ADHA'));
+    $resolvedCashier = old('cashier', $cashier ?? session('cashier_login.display_name', session('system_login.user_id', 'ADHA')));
     $selectedOutlet = old('outlet', session('cashier_login.outlet', $outlets[0] ?? null));
     $redirectTarget = old('redirect_to', url()->current());
 @endphp
@@ -209,4 +205,3 @@
         }
     })();
 </script>
-

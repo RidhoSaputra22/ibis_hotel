@@ -17,9 +17,9 @@
     </div>
 
     <div class="grid gap-6 xl:grid-cols-[180px_minmax(360px,1fr)_130px_minmax(430px,1.35fr)]">
-        <x-ui.menu-tile-section title="Master" :items="$master" color="#f5837d" grid-class="grid-cols-2" requires-cashier-login />
-        <x-ui.menu-tile-section title="Transaction" :items="$transaction" color="#11a9ed" grid-class="grid-cols-2 sm:grid-cols-3 lg:grid-cols-4" requires-cashier-login />
-        <x-ui.menu-tile-section title="Batch" :items="$batch" color="#9f79b7" grid-class="grid-cols-1" requires-cashier-login />
-        <x-ui.menu-tile-section title="Report" :items="$reports" color="#07913d" grid-class="grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5" requires-cashier-login />
+        <x-ui.menu-tile-section title="Master" :items="$master" color="#f5837d" grid-class="grid-cols-2" />
+        <x-ui.menu-tile-section title="Transaction" :items="$transaction" color="#11a9ed" grid-class="grid-cols-2 sm:grid-cols-3 lg:grid-cols-4" />
+        <x-ui.menu-tile-section title="Batch" :items="$batch" color="#9f79b7" grid-class="grid-cols-1" />
+        <x-ui.menu-tile-section title="Report" :items="$reports" color="#07913d" grid-class="grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5" />
     </div>
 </section>

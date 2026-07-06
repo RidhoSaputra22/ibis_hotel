@@ -21,7 +21,7 @@
     <x-ui.legacy-style-kit />
     <x-layouts.legacy-page :sidebar="$sidebar" hotel-name="Ibis Makassar City Center" system-name="Restaurant & Cashier System" :username="session('cashier_login.display_name', 'ADHA')">
         <x-ui.breadcrumb-tabs :items="[
-            ['label' => 'Open Cashier', 'modal' => 'cashierLoginModal'],
+            ['label' => 'Open Cashier', 'href' => route('cashier.session.create')],
             ['label' => 'Restaurant Transaction'],
             ['label' => 'TABLE 01', 'current' => true, 'id' => 'transactionTableTab'],
         ]" />
@@ -39,7 +39,6 @@
     </x-layouts.legacy-page>
 
     <x-restaurant.waiter-modal id="waiterModal" />
-    <x-modals.cashier-login-modal id="cashierLoginModal" />
     <x-modals.folio-lookup-modal id="folioLookupModal" />
     <x-modals.reservation-folio-lookup-modal id="reservationFolioLookupModal" />
     <x-modals.move-split-modal id="moveSplitModal" table-no="01" order-no="00000017" />

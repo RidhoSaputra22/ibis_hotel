@@ -1,17 +1,6 @@
 @php
-    $outlets = [
-        ['code' => '10', 'name' => 'Ibis Kitchen'],
-        ['code' => '20', 'name' => 'Restaurant Terrace'],
-        ['code' => '30', 'name' => 'Room Service'],
-        ['code' => '40', 'name' => 'Banquet'],
-        ['code' => '50', 'name' => 'Pool Bar'],
-    ];
-    $cashiers = [
-        ['code' => 'ADHA', 'name' => 'Adha'],
-        ['code' => 'FARHAN', 'name' => 'Farhan'],
-        ['code' => 'NURUL', 'name' => 'Nurul'],
-        ['code' => 'RIZKY', 'name' => 'Rizky'],
-    ];
+    $outlets = config('cashier.outlets', []);
+    $cashiers = config('cashier.cashiers', []);
     $cashierLookupRows = collect($cashiers)->map(function ($cashier, $index) {
         return [
             'cashier_id' => $cashier['code'],
@@ -25,8 +14,8 @@
     <x-ui.legacy-style-kit />
     <x-layouts.legacy-page :sidebar="$sidebar" hotel-name="Ibis Makassar City Center" system-name="Front Office & Cashier System" :username="session('cashier_login.display_name', 'ADHA')">
         <x-ui.breadcrumb-tabs :items="[
-            ['label' => 'Open Cashier', 'modal' => 'cashierLoginModal'],
-            ['label' => 'Restaurant Transaction', 'href' => url('/restaurant-transaction')],
+            ['label' => 'Open Cashier', 'href' => route('cashier.session.create')],
+            ['label' => 'Restaurant Transaction', 'href' => route('restaurant.transaction')],
             ['label' => 'Daily Cashier Summary', 'current' => true],
         ]" />
 
@@ -42,7 +31,6 @@
     </x-layouts.legacy-page>
 
     <x-daily-cashier.printer-properties-modal />
-    <x-modals.cashier-login-modal id="cashierLoginModal" />
     <x-modals.cashier-lookup-modal id="cashierLookupModal" :cashiers="$cashierLookupRows" />
     <x-reports.daily-cashier-summary-print id="dailyCashierSummaryPrintModal" />
     <x-daily-cashier.summary-client :outlets="$outlets" :cashiers="$cashiers" />

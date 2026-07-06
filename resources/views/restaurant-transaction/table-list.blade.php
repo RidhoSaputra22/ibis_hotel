@@ -5,13 +5,11 @@
 <x-layouts.app title="Table List">
     <x-layouts.legacy-page :sidebar="$sidebar" hotel-name="Ibis Makassar City Center" system-name="Restaurant & Cashier System" :username="session('cashier_login.display_name', 'ADHA')">
         <x-ui.breadcrumb-tabs :items="[
-            ['label' => 'Open Cashier', 'modal' => 'cashierLoginModal'],
-            ['label' => 'FB & Shop Cashier'],
-            ['label' => 'Restaurant Transaction', 'href' => url('/restaurant-transaction')],
+            ['label' => 'Open Cashier', 'href' => route('cashier.session.create')],
+            ['label' => 'FB & Shop Cashier', 'href' => route('cashier.dashboard')],
+            ['label' => 'Restaurant Transaction', 'href' => route('restaurant.transaction')],
             ['label' => 'TABLE LIST', 'current' => true],
         ]" />
         <x-restaurant.table-list-panel id="restaurantTableList" :tables="$tables" />
     </x-layouts.legacy-page>
-
-    <x-modals.cashier-login-modal id="cashierLoginModal" />
 </x-layouts.app>
