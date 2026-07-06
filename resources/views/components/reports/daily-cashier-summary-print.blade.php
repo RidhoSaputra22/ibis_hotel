@@ -456,9 +456,7 @@
 
             renderTable(data);
 
-            zoomLevel = 1;
-            updateZoom();
-            viewport?.scrollTo({ top: 0, left: 0 });
+
 
             return data;
         }
@@ -475,7 +473,7 @@
             }
         }
 
-        root.querySelectorAll('[data-close-daily-cashier-print]').forEach((button) => {
+        (modal ?? root).querySelectorAll('[data-close-daily-cashier-print]').forEach((button) => {
             button.addEventListener('click', () => modal?.close());
         });
 
