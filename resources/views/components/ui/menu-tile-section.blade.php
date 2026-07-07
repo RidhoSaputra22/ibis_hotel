@@ -17,8 +17,8 @@
                 :color="data_get($item, 'color', $color)"
                 :modal="data_get($item, 'modal')"
                 :href="data_get($item, 'href')"
-                :requires-cashier-login="$requiresCashierLogin"
-                :login-modal="$loginModal"
+                :requires-cashier-login="data_get($item, 'requiresCashierLogin', $requiresCashierLogin)"
+                :login-modal="data_get($item, 'loginModal', $loginModal)"
             />
         @endforeach
     </div>

@@ -1,6 +1,6 @@
 <section class="border-b border-slate-200 bg-[#fbfdfe] p-3 xl:border-b-0 xl:border-r">
-    <div class="grid gap-2 sm:grid-cols-[64px_1fr]">
-        <label class="field-label">Order Info</label>
+    <div class="relative p-3 border border-slate-300">
+        <label class="absolute -top-2 left-1 bg-[#fbfdfe] px-1 field-label">Order Info</label>
 
         <div class="grid gap-2 sm:grid-cols-2">
             <x-forms.legacy-field label="Discount Type">

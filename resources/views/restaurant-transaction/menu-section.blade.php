@@ -13,7 +13,12 @@
         ['label' => 'Service Request / From Guest', 'icon' => 'clipboard-list'],
         ['label' => 'Folio Fast Check', 'icon' => 'receipt-text'],
         ['label' => 'F&B Point Desk', 'icon' => 'users-round'],
-        ['label' => 'Restaurant Transaction', 'icon' => 'utensils', 'href' => route('restaurant.transaction')],
+        [
+            'label' => 'Restaurant Transaction',
+            'icon' => 'utensils',
+            'href' => route('restaurant.transaction'),
+            'requiresCashierLogin' => true,
+        ],
         ['label' => 'Customer Relation & Management', 'icon' => 'monitor-smartphone'],
         ['label' => 'Non Revenue Folio Transaction', 'icon' => 'file-text'],
         ['label' => 'Facility Reservation', 'icon' => 'calendar-check-2'],
@@ -28,7 +33,12 @@
         ['label' => 'Package Service Daily Forecast', 'icon' => 'user-round-check'],
         ['label' => 'Cash Out', 'icon' => 'banknote-arrow-down'],
         ['label' => 'Point Refund', 'icon' => 'hand-coins'],
-        ['label' => 'Daily Cashier Summary', 'icon' => 'notebook-tabs', 'href' => route('daily-cashier.summary')],
+        [
+            'label' => 'Daily Cashier Summary',
+            'icon' => 'notebook-tabs',
+            'href' => route('daily-cashier.summary'),
+            'requiresCashierLogin' => true,
+        ],
         ['label' => 'Credit Card Transaction', 'icon' => 'credit-card'],
         ['label' => 'Vip Guest List', 'icon' => 'clipboard-check'],
         ['label' => 'Print Outlet Bill', 'icon' => 'printer'],
@@ -59,4 +69,6 @@
     >
         <x-dashboard.cashier-menu-grid :master="$master" :transaction="$transaction" :batch="$batch" :reports="$reports" />
     </x-layouts.legacy-page>
+
+    <x-modals.cashier-login-modal id="cashierLoginModal" />
 </x-layouts.app>

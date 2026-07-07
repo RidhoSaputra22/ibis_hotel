@@ -1,3 +1,7 @@
+@props([
+    'selectedTable' => '01',
+])
+
 @push('scripts')
 <script>
     (() => {
@@ -25,6 +29,7 @@
         const activeTableTab = document.getElementById('transactionTableTab');
         const billingButtons = [...document.querySelectorAll('[data-open-dialog="printBillingModal"]')];
         const settleButtons = [...document.querySelectorAll('[data-open-dialog="settleModal"]')];
+        const baseTableNo = @json($selectedTable);
         const cashierSession = {
             cashierCode: @json(session('cashier_login.cashier', session('cashier_login.display_name', 'ADHA'))),
             cashierName: @json(session('cashier_login.display_name', 'ADHA')),
@@ -143,7 +148,7 @@
         function extractTableNo() {
             return normalizeText(
                 activeTableTab?.textContent?.replace(/^TABLE\s*/i, ''),
-                '01'
+                baseTableNo
             );
         }
 
@@ -432,7 +437,7 @@
             button.addEventListener('click', () => {
                 zoneButtons.forEach((item) => item.classList.remove('ring-2', 'ring-[#2c88b4]', 'ring-offset-1'));
                 button.classList.add('ring-2', 'ring-[#2c88b4]', 'ring-offset-1');
-                if (activeTableTab) activeTableTab.textContent = `TABLE ${button.dataset.zone}01`;
+                if (activeTableTab) activeTableTab.textContent = `TABLE ${button.dataset.zone}${baseTableNo}`;
             });
         });
 
