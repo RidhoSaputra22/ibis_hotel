@@ -24,6 +24,32 @@
     ],
 ])
 
+@php
+    $normalizedInitialItems = array_map(static function ($item, $index) {
+        $qty = max(1, (int) ($item['qty'] ?? 1));
+        $seatNo = max(1, (int) ($item['seat_no'] ?? 1));
+        $split = strtoupper((string) ($item['split'] ?? 'A'));
+
+        return [
+            'itemId' => (string) ($item['item_id'] ?? $item['seq'] ?? sprintf('ROW-%03d', $index + 1)),
+            'seq' => (string) ($item['seq'] ?? sprintf('%06d', ($index + 1) * 100)),
+            'serviceCode' => (string) ($item['service_code'] ?? '-'),
+            'description' => (string) ($item['description'] ?? '-'),
+            'seatNo' => $seatNo,
+            'qty' => $qty,
+            'split' => $split,
+            'splitQty' => max(1, min($qty, (int) ($item['split_qty'] ?? 1))),
+        ];
+    }, $items, array_keys($items));
+
+    $initialPayload = [
+        'tableNo' => $tableNo,
+        'orderNo' => $orderNo,
+        'currentZone' => 'A',
+        'items' => array_values($normalizedInitialItems),
+    ];
+@endphp
+
 <style>
     #{{ $id }}::backdrop {
         background: rgba(15, 23, 42, .45);
@@ -36,8 +62,6 @@
     class="m-auto w-[calc(100%-1.5rem)] max-w-6xl overflow-hidden rounded-[2px] border border-[#91aab2] bg-[#edf4f6] p-0 shadow-2xl"
 >
     <div class="min-w-0">
-
-        {{-- Header --}}
         <div class="flex h-9 items-center justify-between border-b border-[#afc2c8] bg-[linear-gradient(180deg,#eaf5f8_0%,#d5e8ee_100%)] px-3">
             <div class="flex items-center gap-1.5">
                 <span class="grid h-4 w-4 place-items-center rounded-[2px] border border-[#78a3b4] bg-[#d9f0f5] text-[9px] font-black text-[#326a7e]">
@@ -58,7 +82,6 @@
             </button>
         </div>
 
-        {{-- Bill Info --}}
         <div class="border-b border-[#c5d4d8] bg-[#f4f8f9] px-4 py-3">
             <p class="mb-2 text-[10px] font-bold uppercase tracking-wide text-[#667c84]">
                 Bill Info
@@ -92,126 +115,23 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-[1fr_82px]">
-
-            {{-- Tabel item --}}
             <section class="min-w-0 p-3">
                 <div class="max-h-[430px] overflow-auto border border-[#a9bdc4] bg-white">
                     <table class="min-w-[830px] w-full border-collapse text-left text-[10px] text-[#516970]">
                         <thead class="sticky top-0 z-10 bg-[#dcecf0]">
                             <tr class="border-b border-[#b7cbd1]">
                                 <th class="w-7 border-r border-[#c5d5d9] px-1 py-2"></th>
-
-                                <th class="w-[95px] border-r border-[#c5d5d9] px-2 py-2 font-bold">
-                                    Seq
-                                </th>
-
-                                <th class="w-[135px] border-r border-[#c5d5d9] px-2 py-2 font-bold">
-                                    Serv. Code
-                                </th>
-
-                                <th class="border-r border-[#c5d5d9] px-2 py-2 font-bold">
-                                    Description
-                                </th>
-
-                                <th class="w-[75px] border-r border-[#c5d5d9] px-2 py-2 text-center font-bold">
-                                    Seat #
-                                </th>
-
-                                <th class="w-[70px] border-r border-[#c5d5d9] px-2 py-2 text-center font-bold">
-                                    Qty
-                                </th>
-
-                                <th class="w-[95px] border-r border-[#c5d5d9] px-2 py-2 text-center font-bold">
-                                    Split
-                                </th>
-
-                                <th class="w-[95px] px-2 py-2 text-center font-bold">
-                                    Split Qty
-                                </th>
+                                <th class="w-[95px] border-r border-[#c5d5d9] px-2 py-2 font-bold">Seq</th>
+                                <th class="w-[135px] border-r border-[#c5d5d9] px-2 py-2 font-bold">Serv. Code</th>
+                                <th class="border-r border-[#c5d5d9] px-2 py-2 font-bold">Description</th>
+                                <th class="w-[75px] border-r border-[#c5d5d9] px-2 py-2 text-center font-bold">Seat #</th>
+                                <th class="w-[70px] border-r border-[#c5d5d9] px-2 py-2 text-center font-bold">Qty</th>
+                                <th class="w-[95px] border-r border-[#c5d5d9] px-2 py-2 text-center font-bold">Split</th>
+                                <th class="w-[95px] px-2 py-2 text-center font-bold">Split Qty</th>
                             </tr>
                         </thead>
 
-                        <tbody id="{{ $id }}Body">
-                            @foreach ($items as $index => $item)
-                                <tr
-                                    data-move-row
-                                    data-seq="{{ $item['seq'] }}"
-                                    data-service-code="{{ $item['service_code'] }}"
-                                    data-description="{{ $item['description'] }}"
-                                    data-seat-no="{{ $item['seat_no'] }}"
-                                    data-qty="{{ $item['qty'] }}"
-                                    class="cursor-pointer border-b border-[#d8e3e6] transition hover:bg-[#e7f3f6] {{ $index === 0 ? 'bg-[#f5d69a]' : 'bg-white' }}"
-                                >
-                                    <td class="border-r border-[#e0e9eb] px-1 py-2 text-center">
-                                        <span
-                                            data-row-arrow
-                                            class="{{ $index === 0 ? '' : 'invisible' }} text-[10px] font-bold text-[#5c6e73]"
-                                        >
-                                            ◆
-                                        </span>
-                                    </td>
-
-                                    <td class="border-r border-[#e0e9eb] px-2 py-2 font-medium">
-                                        {{ $item['seq'] }}
-                                    </td>
-
-                                    <td class="border-r border-[#e0e9eb] px-2 py-2">
-                                        {{ $item['service_code'] }}
-                                    </td>
-
-                                    <td class="border-r border-[#e0e9eb] px-2 py-2 font-medium">
-                                        {{ $item['description'] }}
-                                    </td>
-
-                                    <td class="border-r border-[#e0e9eb] px-2 py-1 text-center">
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            value="{{ $item['seat_no'] }}"
-                                            data-seat-input
-                                            class="h-6 w-12 rounded-[2px] border border-transparent bg-transparent text-center text-[10px] outline-none focus:border-[#77b6ce] focus:bg-white"
-                                        >
-                                    </td>
-
-                                    <td class="border-r border-[#e0e9eb] px-2 py-1 text-center">
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            value="{{ $item['qty'] }}"
-                                            data-qty-input
-                                            class="h-6 w-12 rounded-[2px] border border-transparent bg-transparent text-center text-[10px] outline-none focus:border-[#77b6ce] focus:bg-white"
-                                        >
-                                    </td>
-
-                                    <td class="border-r border-[#e0e9eb] px-2 py-1 text-center">
-                                        <select
-                                            data-split-input
-                                            class="h-6 w-16 rounded-[2px] border border-transparent bg-transparent text-center text-[10px] outline-none focus:border-[#77b6ce] focus:bg-white"
-                                        >
-                                            @foreach (range('A', 'J') as $splitZone)
-                                                <option
-                                                    value="{{ $splitZone }}"
-                                                    @selected($item['split'] === $splitZone)
-                                                >
-                                                    {{ $splitZone }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </td>
-
-                                    <td class="px-2 py-1 text-center">
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            max="{{ $item['qty'] }}"
-                                            value="{{ $item['split_qty'] }}"
-                                            data-split-qty-input
-                                            class="h-6 w-14 rounded-[2px] border border-transparent bg-transparent text-center text-[10px] outline-none focus:border-[#77b6ce] focus:bg-white"
-                                        >
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
+                        <tbody id="{{ $id }}Body"></tbody>
                     </table>
                 </div>
 
@@ -220,7 +140,6 @@
                 </p>
             </section>
 
-            {{-- Tombol tujuan split --}}
             <aside class="border-t border-[#c5d4d8] bg-[#edf4f6] p-3 lg:border-l lg:border-t-0">
                 <p class="mb-2 text-center text-[9px] font-bold uppercase tracking-wide text-[#6b8189]">
                     Split To
@@ -240,7 +159,6 @@
             </aside>
         </div>
 
-        {{-- Footer --}}
         <div class="flex flex-wrap items-center justify-between gap-3 border-t border-[#c5d4d8] bg-[#edf4f6] px-4 py-3">
             <p id="{{ $id }}SelectedInfo" class="text-[10px] text-[#6d838a]">
                 Tujuan split: <strong>A</strong>
@@ -277,89 +195,316 @@
 
         modal.dataset.ready = 'true';
 
-        const rows = () => [...modal.querySelectorAll('[data-move-row]')];
-        const zoneButtons = [...modal.querySelectorAll('[data-split-zone]')];
+        const initialPayload = @json($initialPayload);
+        const body = document.getElementById(@js($id . 'Body'));
+        const tableNoInput = document.getElementById(@js($id . 'TableNo'));
+        const orderNoInput = document.getElementById(@js($id . 'OrderNo'));
         const processButton = document.getElementById(@js($id . 'Process'));
         const selectedInfo = document.getElementById(@js($id . 'SelectedInfo'));
+        const zoneButtons = [...modal.querySelectorAll('[data-split-zone]')];
 
-        let selectedRow = modal.querySelector('[data-move-row]');
-        let selectedZone = 'A';
+        const state = {
+            tableNo: String(initialPayload.tableNo ?? ''),
+            orderNo: String(initialPayload.orderNo ?? ''),
+            currentZone: 'A',
+            items: [],
+            selectedItemId: null,
+            selectedZone: 'A',
+        };
 
-        function selectRow(row) {
-            rows().forEach((item) => {
-                item.classList.remove('bg-[#f5d69a]');
-                item.classList.add('bg-white');
+        function escapeHtml(value = '') {
+            return String(value).replace(/[&<>"']/g, (char) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;',
+            }[char]));
+        }
 
-                const arrow = item.querySelector('[data-row-arrow]');
-                if (arrow) {
-                    arrow.classList.add('invisible');
-                }
-            });
+        function normalizeZone(zone, fallback = 'A') {
+            const normalized = String(zone ?? '').trim().toUpperCase();
+            return zoneButtons.some((button) => button.dataset.splitZone === normalized)
+                ? normalized
+                : fallback;
+        }
 
-            row.classList.remove('bg-white');
-            row.classList.add('bg-[#f5d69a]');
+        function clampPositiveInteger(value, min = 1, max = Number.POSITIVE_INFINITY) {
+            const parsed = Number.parseInt(value, 10);
+            const normalized = Number.isFinite(parsed) ? parsed : min;
 
-            const arrow = row.querySelector('[data-row-arrow]');
-            if (arrow) {
-                arrow.classList.remove('invisible');
+            return Math.min(Math.max(normalized, min), max);
+        }
+
+        function normalizeItems(items = []) {
+            return (Array.isArray(items) ? items : []).map((item, index) => {
+                const qty = clampPositiveInteger(item.qty ?? 1, 1);
+                const sourceSplit = normalizeZone(item.sourceSplit ?? item.split ?? item.splitZone ?? 'A');
+                const sourceSeatNo = clampPositiveInteger(item.sourceSeatNo ?? item.seatNo ?? item.seat_no ?? 1, 1);
+
+                return {
+                    itemId: String(item.itemId ?? item.item_id ?? item.uid ?? item.seq ?? `row-${index + 1}`),
+                    seq: String(item.seq ?? `${(index + 1) * 100}`),
+                    serviceCode: String(item.serviceCode ?? item.service_code ?? '-'),
+                    description: String(item.description ?? item.name ?? '-'),
+                    sourceSeatNo,
+                    seatNo: clampPositiveInteger(item.seatNo ?? item.seat_no ?? sourceSeatNo, 1),
+                    qty,
+                    sourceSplit,
+                    split: normalizeZone(item.split ?? item.splitZone ?? item.split_zone ?? sourceSplit, sourceSplit),
+                    splitQty: clampPositiveInteger(item.splitQty ?? item.split_qty ?? 1, 1, qty),
+                };
+            }).sort((left, right) => Number(left.seq) - Number(right.seq));
+        }
+
+        function rows() {
+            return [...body.querySelectorAll('[data-move-row]')];
+        }
+
+        function getItemById(itemId) {
+            return state.items.find((item) => item.itemId === itemId) ?? null;
+        }
+
+        function getSelectedItem() {
+            return getItemById(state.selectedItemId);
+        }
+
+        function updateProcessButtonState() {
+            const disabled = !state.selectedItemId || state.items.length === 0;
+
+            processButton.disabled = disabled;
+            processButton.classList.toggle('opacity-50', disabled);
+            processButton.classList.toggle('cursor-not-allowed', disabled);
+        }
+
+        function updateSelectedInfo() {
+            const item = getSelectedItem();
+
+            if (!item) {
+                selectedInfo.textContent = 'Tidak ada item untuk dipindahkan.';
+                return;
             }
 
-            selectedRow = row;
+            selectedInfo.innerHTML = `Tujuan split: <strong>${item.split}</strong>`;
+        }
+
+        function refreshZoneButtons() {
+            zoneButtons.forEach((button) => {
+                const isActive = button.dataset.splitZone === state.selectedZone;
+
+                button.classList.toggle('ring-2', isActive);
+                button.classList.toggle('ring-[#4d9dbd]', isActive);
+                button.classList.toggle('ring-offset-1', isActive);
+            });
+        }
+
+        function syncRowState(row) {
+            const item = getItemById(row.dataset.itemId);
+
+            if (!item) {
+                return null;
+            }
+
+            const seatInput = row.querySelector('[data-seat-input]');
+            const splitSelect = row.querySelector('[data-split-input]');
+            const splitQtyInput = row.querySelector('[data-split-qty-input]');
+
+            item.seatNo = clampPositiveInteger(seatInput?.value ?? item.seatNo, 1);
+            item.split = normalizeZone(splitSelect?.value ?? item.split, item.sourceSplit);
+            item.splitQty = clampPositiveInteger(splitQtyInput?.value ?? item.splitQty, 1, item.qty);
+
+            if (seatInput) {
+                seatInput.value = item.seatNo;
+            }
+
+            if (splitSelect) {
+                splitSelect.value = item.split;
+            }
+
+            if (splitQtyInput) {
+                splitQtyInput.max = String(item.qty);
+                splitQtyInput.value = item.splitQty;
+            }
+
+            if (item.itemId === state.selectedItemId) {
+                state.selectedZone = item.split;
+                refreshZoneButtons();
+                updateSelectedInfo();
+            }
+
+            return item;
+        }
+
+        function selectRow(itemId) {
+            const item = getItemById(itemId);
+
+            if (!item) {
+                return;
+            }
+
+            state.selectedItemId = itemId;
+            state.selectedZone = item.split;
+
+            rows().forEach((row) => {
+                const isActive = row.dataset.itemId === itemId;
+
+                row.classList.toggle('bg-[#f5d69a]', isActive);
+                row.classList.toggle('bg-white', !isActive);
+                row.querySelector('[data-row-arrow]')?.classList.toggle('invisible', !isActive);
+            });
+
+            refreshZoneButtons();
+            updateSelectedInfo();
+            updateProcessButtonState();
+        }
+
+        function attachRowListeners() {
+            rows().forEach((row) => {
+                const itemId = row.dataset.itemId;
+                const fields = row.querySelectorAll('input, select');
+
+                row.addEventListener('click', () => {
+                    selectRow(itemId);
+                });
+
+                fields.forEach((field) => {
+                    field.addEventListener('click', (event) => {
+                        event.stopPropagation();
+                        selectRow(itemId);
+                    });
+
+                    field.addEventListener('input', () => {
+                        selectRow(itemId);
+                        syncRowState(row);
+                    });
+
+                    field.addEventListener('change', () => {
+                        selectRow(itemId);
+                        syncRowState(row);
+                    });
+                });
+            });
+        }
+
+        function renderRows() {
+            if (state.items.length === 0) {
+                body.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="px-3 py-10 text-center text-slate-400">
+                            Belum ada item split bill yang bisa dipindahkan.
+                        </td>
+                    </tr>
+                `;
+
+                state.selectedItemId = null;
+                state.selectedZone = state.currentZone;
+                refreshZoneButtons();
+                updateSelectedInfo();
+                updateProcessButtonState();
+                return;
+            }
+
+            if (!getSelectedItem()) {
+                state.selectedItemId = state.items[0].itemId;
+            }
+
+            body.innerHTML = state.items.map((item) => `
+                <tr
+                    data-move-row
+                    data-item-id="${escapeHtml(item.itemId)}"
+                    class="cursor-pointer border-b border-[#d8e3e6] transition hover:bg-[#e7f3f6]"
+                >
+                    <td class="border-r border-[#e0e9eb] px-1 py-2 text-center">
+                        <span data-row-arrow class="invisible text-[10px] font-bold text-[#5c6e73]">◆</span>
+                    </td>
+                    <td class="border-r border-[#e0e9eb] px-2 py-2 font-medium">${escapeHtml(item.seq)}</td>
+                    <td class="border-r border-[#e0e9eb] px-2 py-2">${escapeHtml(item.serviceCode)}</td>
+                    <td class="border-r border-[#e0e9eb] px-2 py-2 font-medium">${escapeHtml(item.description)}</td>
+                    <td class="border-r border-[#e0e9eb] px-2 py-1 text-center">
+                        <input
+                            type="number"
+                            min="1"
+                            value="${item.seatNo}"
+                            data-seat-input
+                            class="h-6 w-12 rounded-[2px] border border-transparent bg-transparent text-center text-[10px] outline-none focus:border-[#77b6ce] focus:bg-white"
+                        >
+                    </td>
+                    <td class="border-r border-[#e0e9eb] px-2 py-1 text-center">
+                        <input
+                            type="number"
+                            value="${item.qty}"
+                            readonly
+                            data-qty-input
+                            class="h-6 w-12 rounded-[2px] border border-transparent bg-[#f8fbfc] text-center text-[10px] text-[#516970] outline-none"
+                        >
+                    </td>
+                    <td class="border-r border-[#e0e9eb] px-2 py-1 text-center">
+                        <select
+                            data-split-input
+                            class="h-6 w-16 rounded-[2px] border border-transparent bg-transparent text-center text-[10px] outline-none focus:border-[#77b6ce] focus:bg-white"
+                        >
+                            ${zoneButtons.map((button) => `
+                                <option value="${button.dataset.splitZone}" ${button.dataset.splitZone === item.split ? 'selected' : ''}>
+                                    ${button.dataset.splitZone}
+                                </option>
+                            `).join('')}
+                        </select>
+                    </td>
+                    <td class="px-2 py-1 text-center">
+                        <input
+                            type="number"
+                            min="1"
+                            max="${item.qty}"
+                            value="${item.splitQty}"
+                            data-split-qty-input
+                            class="h-6 w-14 rounded-[2px] border border-transparent bg-transparent text-center text-[10px] outline-none focus:border-[#77b6ce] focus:bg-white"
+                        >
+                    </td>
+                </tr>
+            `).join('');
+
+            attachRowListeners();
+            selectRow(state.selectedItemId);
+        }
+
+        function populate(payload = {}) {
+            state.tableNo = String(payload.tableNo ?? initialPayload.tableNo ?? '').trim() || String(initialPayload.tableNo ?? '');
+            state.orderNo = String(payload.orderNo ?? initialPayload.orderNo ?? '').trim() || String(initialPayload.orderNo ?? '');
+            state.currentZone = normalizeZone(payload.currentZone ?? initialPayload.currentZone ?? 'A');
+            state.items = normalizeItems(Array.isArray(payload.items) ? payload.items : initialPayload.items);
+            state.selectedItemId = state.items[0]?.itemId ?? null;
+            state.selectedZone = state.items[0]?.split ?? state.currentZone;
+
+            if (tableNoInput) {
+                tableNoInput.value = state.tableNo;
+            }
+
+            if (orderNoInput) {
+                orderNoInput.value = state.orderNo;
+            }
+
+            renderRows();
         }
 
         function selectZone(zone) {
-            selectedZone = zone;
+            state.selectedZone = normalizeZone(zone, state.selectedZone);
 
-            zoneButtons.forEach((button) => {
-                button.classList.remove(
-                    'ring-2',
-                    'ring-[#4d9dbd]',
-                    'ring-offset-1'
-                );
-            });
+            const selectedRow = rows().find((row) => row.dataset.itemId === state.selectedItemId);
 
-            const activeButton = zoneButtons.find(
-                (button) => button.dataset.splitZone === zone
-            );
-
-            if (activeButton) {
-                activeButton.classList.add(
-                    'ring-2',
-                    'ring-[#4d9dbd]',
-                    'ring-offset-1'
-                );
+            if (!selectedRow) {
+                refreshZoneButtons();
+                updateSelectedInfo();
+                return;
             }
 
-            selectedInfo.innerHTML = `Tujuan split: <strong>${zone}</strong>`;
+            const splitSelect = selectedRow.querySelector('[data-split-input]');
 
-            if (selectedRow) {
-                const splitSelect = selectedRow.querySelector('[data-split-input]');
-
-                if (splitSelect) {
-                    splitSelect.value = zone;
-                }
+            if (splitSelect) {
+                splitSelect.value = state.selectedZone;
             }
+
+            syncRowState(selectedRow);
         }
-
-        rows().forEach((row) => {
-            row.addEventListener('click', (event) => {
-                if (
-                    event.target.matches('[data-seat-input]') ||
-                    event.target.matches('[data-qty-input]') ||
-                    event.target.matches('[data-split-input]') ||
-                    event.target.matches('[data-split-qty-input]')
-                ) {
-                    return;
-                }
-
-                selectRow(row);
-            });
-
-            row.querySelector('[data-split-input]')?.addEventListener('change', (event) => {
-                selectRow(row);
-                selectZone(event.target.value);
-            });
-        });
 
         zoneButtons.forEach((button) => {
             button.addEventListener('click', () => {
@@ -374,50 +519,45 @@
         });
 
         processButton.addEventListener('click', () => {
+            const selectedRow = rows().find((row) => row.dataset.itemId === state.selectedItemId);
+
             if (!selectedRow) {
-                alert('Pilih item yang ingin dipindahkan terlebih dahulu.');
+                window.alert('Pilih item yang ingin dipindahkan terlebih dahulu.');
                 return;
             }
 
-            const qty = Number(
-                selectedRow.querySelector('[data-qty-input]').value
-            );
+            const item = syncRowState(selectedRow);
 
-            const splitQty = Number(
-                selectedRow.querySelector('[data-split-qty-input]').value
-            );
-
-            if (!splitQty || splitQty < 1 || splitQty > qty) {
-                alert('Split Qty harus minimal 1 dan tidak boleh melebihi Qty.');
+            if (!item) {
                 return;
             }
 
-            const result = {
-                tableNo: document.getElementById(@js($id . 'TableNo')).value,
-                orderNo: document.getElementById(@js($id . 'OrderNo')).value,
-                destination: selectedZone,
-                item: {
-                    seq: selectedRow.dataset.seq,
-                    serviceCode: selectedRow.dataset.serviceCode,
-                    description: selectedRow.dataset.description,
-                    seatNo: Number(
-                        selectedRow.querySelector('[data-seat-input]').value
-                    ),
-                    qty,
-                    splitQty,
-                    splitZone: selectedRow.querySelector('[data-split-input]').value,
+            if (!item.splitQty || item.splitQty < 1 || item.splitQty > item.qty) {
+                window.alert('Split Qty harus minimal 1 dan tidak boleh melebihi Qty.');
+                return;
+            }
+
+            if (item.sourceSplit === item.split && Number(item.sourceSeatNo) === Number(item.seatNo)) {
+                window.alert('Pilih split atau seat tujuan yang berbeda terlebih dahulu.');
+                return;
+            }
+
+            window.dispatchEvent(new CustomEvent('move-split-processed', {
+                detail: {
+                    tableNo: state.tableNo,
+                    orderNo: state.orderNo,
+                    itemId: item.itemId,
+                    seq: item.seq,
+                    serviceCode: item.serviceCode,
+                    description: item.description,
+                    sourceSplit: item.sourceSplit,
+                    sourceSeatNo: item.sourceSeatNo,
+                    destination: item.split,
+                    destinationSeatNo: item.seatNo,
+                    qty: item.qty,
+                    splitQty: item.splitQty,
                 },
-            };
-
-            window.dispatchEvent(
-                new CustomEvent('move-split-processed', {
-                    detail: result
-                })
-            );
-
-            alert(
-                `Item "${result.item.description}" dipindahkan ke split ${result.destination}.`
-            );
+            }));
 
             modal.close();
         });
@@ -428,6 +568,10 @@
             }
         });
 
-       
+        window.addEventListener('move-split:prepare', (event) => {
+            populate(event.detail || {});
+        });
+
+        populate(initialPayload);
     })();
 </script>

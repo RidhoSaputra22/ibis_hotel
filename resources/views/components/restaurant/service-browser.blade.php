@@ -28,7 +28,7 @@
 
     <div id="serviceGrid" class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
         @foreach ($items as $item)
-            <button type="button" data-service-name="{{ $item['name'] }}" data-service-price="{{ $item['price'] }}" data-service-category="{{ $item['category'] }}" class="service-card min-h-[90px] rounded-sm border border-[#bfd0d5] bg-[#eaf3f5] p-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,.9)] transition hover:-translate-y-0.5 hover:border-[#65a9c2] hover:bg-[#d7ecf2] focus:outline-none focus:ring-4 focus:ring-sky-100">
+            <button type="button" data-service-name="{{ $item['name'] }}" data-service-price="{{ $item['price'] }}" data-service-code="{{ $item['service_code'] ?? '' }}" data-service-category="{{ $item['category'] }}" class="service-card min-h-[90px] rounded-sm border border-[#bfd0d5] bg-[#eaf3f5] p-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,.9)] transition hover:-translate-y-0.5 hover:border-[#65a9c2] hover:bg-[#d7ecf2] focus:outline-none focus:ring-4 focus:ring-sky-100">
                 <span class="block text-[10px] font-bold leading-snug text-[#3f6c7e]">{{ $item['name'] }}</span>
                 <span class="mt-3 block text-[10px] font-semibold text-[#267093]">Rp{{ number_format($item['price'], 0, ',', '.') }}</span>
             </button>

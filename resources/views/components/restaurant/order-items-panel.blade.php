@@ -1,7 +1,10 @@
 <div class="mt-3 overflow-hidden rounded-sm border border-slate-300 bg-white">
     <div class="flex items-center justify-between border-b border-slate-200 bg-[#edf4f6] px-3 py-2">
         <h2 class="text-[11px] font-bold text-slate-600">Item List</h2>
-        <span id="itemCountBadge" class="rounded-full bg-sky-100 px-2 py-0.5 text-[9px] font-bold text-sky-700">0 item</span>
+        <div class="flex items-center gap-1">
+            <span id="activeSplitBadge" class="rounded-full bg-white px-2 py-0.5 text-[9px] font-bold text-slate-500 ring-1 ring-slate-200">Split A</span>
+            <span id="itemCountBadge" class="rounded-full bg-sky-100 px-2 py-0.5 text-[9px] font-bold text-sky-700">0 item</span>
+        </div>
     </div>
 
     <x-tables.legacy-table-shell wrapper-class="max-h-[250px] overflow-y-auto" table-class="w-full text-left text-[10px]">

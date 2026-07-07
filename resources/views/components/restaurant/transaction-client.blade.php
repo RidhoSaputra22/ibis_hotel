@@ -6,9 +6,11 @@
 <script>
     (() => {
         const orderItems = [];
+        const splitZones = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
         const orderItemsBody = document.getElementById('orderItemsBody');
         const grandTotal = document.getElementById('grandTotal');
         const itemCountBadge = document.getElementById('itemCountBadge');
+        const activeSplitBadge = document.getElementById('activeSplitBadge');
         const serviceSearch = document.getElementById('serviceSearch');
         const serviceCards = [...document.querySelectorAll('.service-card')];
         const categoryButtons = [...document.querySelectorAll('.category-button')];
@@ -29,6 +31,7 @@
         const activeTableTab = document.getElementById('transactionTableTab');
         const billingButtons = [...document.querySelectorAll('[data-open-dialog="printBillingModal"]')];
         const settleButtons = [...document.querySelectorAll('[data-open-dialog="settleModal"]')];
+        const moveSplitButtons = [...document.querySelectorAll('[data-open-dialog="moveSplitModal"]')];
         const baseTableNo = @json($selectedTable);
         const cashierSession = {
             cashierCode: @json(session('cashier_login.cashier', session('cashier_login.display_name', 'ADHA'))),
@@ -51,7 +54,8 @@
         if (!orderItemsBody || !grandTotal || !itemCountBadge) return;
 
         let activeCategory = categoryButtons[0]?.dataset.category ?? 'Appetizer';
-        let currentDraftIdentity = null;
+        let activeSplitZone = zoneButtons.find((button) => button.classList.contains('ring-2'))?.dataset.zone ?? 'A';
+        let currentDraftIdentities = {};
         let lastCompletedTransaction = null;
 
         function formatRupiah(number) {
@@ -90,6 +94,16 @@
             return text || fallback;
         }
 
+        function escapeHtml(value = '') {
+            return String(value).replace(/[&<>"']/g, (char) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;',
+            }[char]));
+        }
+
         function parseStorageArray(storageKey) {
             try {
                 const parsed = JSON.parse(localStorage.getItem(storageKey) ?? '[]');
@@ -124,35 +138,78 @@
             }
         }
 
-        function nextDocumentNumber(key, seed) {
+        function nextSequenceValue(key, seed, increment = 1) {
             const sequenceState = loadSequenceState();
             const nextNumber = Number(sequenceState[key] ?? seed);
 
-            sequenceState[key] = nextNumber + 1;
+            sequenceState[key] = nextNumber + increment;
             localStorage.setItem(sequenceStorageKey, JSON.stringify(sequenceState));
 
-            return String(nextNumber).padStart(10, '0');
+            return nextNumber;
         }
 
-        function ensureDraftIdentity() {
-            if (!currentDraftIdentity) {
-                currentDraftIdentity = {
+        function nextDocumentNumber(key, seed) {
+            return String(nextSequenceValue(key, seed)).padStart(10, '0');
+        }
+
+        function nextLineSequence() {
+            return String(nextSequenceValue('lineSeq', 100, 100)).padStart(6, '0');
+        }
+
+        function extractTableNo() {
+            return normalizeText(baseTableNo, '01');
+        }
+
+        function normalizeZone(zone, fallback = 'A') {
+            const normalized = String(zone ?? '').trim().toUpperCase();
+            return splitZones.includes(normalized) ? normalized : fallback;
+        }
+
+        function getItemsForZone(zone = activeSplitZone) {
+            return orderItems.filter((item) => item.splitZone === zone);
+        }
+
+        function getVisibleItems() {
+            return [...getItemsForZone(activeSplitZone)].sort((left, right) => {
+                return Number(left.seq) - Number(right.seq);
+            });
+        }
+
+        function getFirstOccupiedZone() {
+            return splitZones.find((zone) => getItemsForZone(zone).length > 0) ?? null;
+        }
+
+        function getDraftIdentity(zone) {
+            return currentDraftIdentities[zone] ?? null;
+        }
+
+        function ensureDraftIdentity(zone = activeSplitZone) {
+            if (!currentDraftIdentities[zone]) {
+                currentDraftIdentities[zone] = {
                     checkNo: nextDocumentNumber('checkNo', 24358),
                     billNo: nextDocumentNumber('billNo', 24593),
                 };
             }
 
-            return currentDraftIdentity;
+            return currentDraftIdentities[zone];
         }
 
-        function extractTableNo() {
-            return normalizeText(
-                activeTableTab?.textContent?.replace(/^TABLE\s*/i, ''),
-                baseTableNo
-            );
+        function resolveServiceCode(code, name) {
+            const normalizedCode = String(code ?? '').trim();
+
+            if (normalizedCode) {
+                return normalizedCode;
+            }
+
+            const compactName = String(name ?? '')
+                .toUpperCase()
+                .replace(/[^A-Z0-9]+/g, '')
+                .slice(0, 8);
+
+            return `FNB-${compactName || 'GEN'}`;
         }
 
-        function calculateBill(items) {
+        function calculateBill(items = []) {
             const subTotal = items.reduce((sum, item) => sum + (Number(item.price) * Number(item.qty)), 0);
             const discount = 0;
             const service = Math.round(subTotal * 0.10);
@@ -198,10 +255,29 @@
             }, { cash: 0, card: 0, other: 0 });
         }
 
-        function buildOrderSnapshot() {
-            const identity = ensureDraftIdentity();
+        function buildSnapshotItems(zone = activeSplitZone) {
+            return getItemsForZone(zone).map((item) => ({
+                uid: item.uid,
+                seq: item.seq,
+                serviceCode: item.serviceCode,
+                name: item.name,
+                price: Number(item.price),
+                qty: Number(item.qty),
+                seatNo: Number(item.seatNo),
+                splitZone: item.splitZone,
+            }));
+        }
+
+        function buildOrderSnapshot(zone = activeSplitZone) {
+            const items = buildSnapshotItems(zone);
+
+            if (items.length === 0) {
+                return null;
+            }
+
+            const identity = getDraftIdentity(zone) ?? ensureDraftIdentity(zone);
             const now = new Date();
-            const bill = calculateBill(orderItems);
+            const bill = calculateBill(items);
 
             return {
                 outletCode: outletCodeMap[cashierSession.outletName] ?? '10',
@@ -217,6 +293,8 @@
                 timeZone: normalizeText(timeZoneInput?.value, 'Breakfast'),
                 groupCharge: normalizeText(groupChargeInput?.value, 'F&B'),
                 tableNo: extractTableNo(),
+                splitZone: zone,
+                tableLabel: `${extractTableNo()} / Split ${zone}`,
                 checkNo: identity.checkNo,
                 billNo: identity.billNo,
                 pax: Math.max(1, Number(paxInput?.value || 1)),
@@ -224,17 +302,26 @@
                 businessDate: toBusinessDate(now),
                 printedDate: formatShortDateTime(now),
                 transactionAt: now.toISOString(),
-                items: orderItems.map((item) => ({
-                    name: item.name,
-                    price: Number(item.price),
-                    qty: Number(item.qty),
-                })),
+                items,
                 ...bill,
             };
         }
 
+        function resolveDisplayPaymentType(snapshot) {
+            const baseType = normalizeText(snapshot?.paymentType, 'Full');
+            const splitZone = normalizeZone(snapshot?.splitZone ?? '', '');
+
+            if (!splitZone || baseType.includes(`Split ${splitZone}`)) {
+                return baseType;
+            }
+
+            return `${baseType} / Split ${splitZone}`;
+        }
+
         function buildBillingPayload(source = null) {
-            const snapshot = source ?? (orderItems.length ? buildOrderSnapshot() : lastCompletedTransaction);
+            const snapshot = source
+                ?? buildOrderSnapshot(activeSplitZone)
+                ?? (orderItems.length === 0 ? lastCompletedTransaction : null);
 
             if (!snapshot) {
                 return null;
@@ -243,10 +330,10 @@
             return {
                 outlet: snapshot.outletName ?? cashierSession.outletName,
                 date: snapshot.printedDate ?? formatShortDateTime(new Date(snapshot.transactionAt ?? Date.now())),
-                tableNo: snapshot.tableNo ?? extractTableNo(),
-                checkNo: snapshot.checkNo ?? ensureDraftIdentity().checkNo,
+                tableNo: snapshot.tableLabel ?? snapshot.tableNo ?? extractTableNo(),
+                checkNo: snapshot.checkNo ?? (getDraftIdentity(activeSplitZone)?.checkNo ?? '0000000000'),
                 cashier: snapshot.cashierCode ?? cashierSession.cashierCode,
-                paymentType: snapshot.paymentType ?? 'Full',
+                paymentType: resolveDisplayPaymentType(snapshot),
                 pax: snapshot.pax ?? 1,
                 items: Array.isArray(snapshot.items) ? snapshot.items.map((item) => ({
                     qty: Number(item.qty ?? 0),
@@ -261,17 +348,27 @@
             };
         }
 
-        function buildSettlementConfig() {
-            const snapshot = buildOrderSnapshot();
+        function buildSettlementConfig(zone = activeSplitZone) {
+            const snapshot = buildOrderSnapshot(zone);
+
+            if (!snapshot) {
+                return null;
+            }
 
             return {
                 billNo: snapshot.billNo,
                 totalAmount: snapshot.total,
+                splitZone: zone,
             };
         }
 
-        function persistCompletedTransaction(detail = {}) {
-            const snapshot = buildOrderSnapshot();
+        function persistCompletedTransaction(zone, detail = {}) {
+            const snapshot = buildOrderSnapshot(zone);
+
+            if (!snapshot) {
+                return null;
+            }
+
             const settledAt = new Date().toISOString();
             const payments = Array.isArray(detail.payments)
                 ? detail.payments.map((payment) => ({
@@ -282,7 +379,7 @@
             const paymentBreakdown = buildPaymentBreakdown(payments);
             const transactionRecord = {
                 ...snapshot,
-                storageId: `${cashierSession.sessionStartedAt}:${snapshot.billNo}:${snapshot.transactionAt}`,
+                storageId: `${cashierSession.sessionStartedAt}:${snapshot.billNo}:${snapshot.transactionAt}:${zone}`,
                 paymentType: detail.paymentType ?? snapshot.paymentType,
                 tips: Number(detail.tips ?? 0),
                 change: Number(detail.change ?? 0),
@@ -310,51 +407,136 @@
             return transactionRecord;
         }
 
-        function resetOrder() {
-            orderItems.splice(0, orderItems.length);
-            currentDraftIdentity = null;
-
+        function resetSharedFields() {
             if (guestNameInput) guestNameInput.value = '';
             if (chargeGuestNameInput) chargeGuestNameInput.value = '';
             if (roomChargeReferenceInput) roomChargeReferenceInput.value = '';
             if (paxInput) paxInput.value = 1;
+        }
 
+        function resetOrder() {
+            orderItems.splice(0, orderItems.length);
+            currentDraftIdentities = {};
+            activeSplitZone = 'A';
+
+            resetSharedFields();
             renderOrder();
         }
 
+        function createOrderItem({
+            name,
+            price,
+            serviceCode,
+            qty = 1,
+            splitZone = activeSplitZone,
+            seatNo = 1,
+        }) {
+            const seq = nextLineSequence();
+
+            return {
+                uid: `line-${seq}`,
+                seq,
+                serviceCode: resolveServiceCode(serviceCode, name),
+                name,
+                price: Number(price),
+                qty: Math.max(1, Number(qty || 1)),
+                splitZone: normalizeZone(splitZone, activeSplitZone),
+                seatNo: Math.max(1, Number(seatNo || 1)),
+            };
+        }
+
+        function findMergeTarget(sourceItem, destinationZone, destinationSeatNo, excludedUid = null) {
+            return orderItems.find((item) => {
+                return item.uid !== excludedUid
+                    && item.splitZone === destinationZone
+                    && Number(item.seatNo) === Number(destinationSeatNo)
+                    && item.serviceCode === sourceItem.serviceCode
+                    && Number(item.price) === Number(sourceItem.price)
+                    && item.name === sourceItem.name;
+            });
+        }
+
+        function removeItemsForZone(zone, { clearIdentity = false } = {}) {
+            const removableItems = getItemsForZone(zone);
+
+            removableItems.forEach((item) => {
+                const index = orderItems.findIndex((candidate) => candidate.uid === item.uid);
+
+                if (index >= 0) {
+                    orderItems.splice(index, 1);
+                }
+            });
+
+            if (clearIdentity) {
+                delete currentDraftIdentities[zone];
+            }
+        }
+
+        function updateTableContext() {
+            if (activeTableTab) {
+                activeTableTab.textContent = `TABLE ${extractTableNo()}`;
+            }
+
+            if (activeSplitBadge) {
+                activeSplitBadge.textContent = `Split ${activeSplitZone}`;
+            }
+        }
+
+        function renderZoneButtons() {
+            zoneButtons.forEach((button) => {
+                const zone = normalizeZone(button.dataset.zone, 'A');
+                const itemCount = getItemsForZone(zone).reduce((sum, item) => sum + Number(item.qty), 0);
+                const isActive = zone === activeSplitZone;
+
+                button.classList.toggle('ring-2', isActive);
+                button.classList.toggle('ring-[#2c88b4]', isActive);
+                button.classList.toggle('ring-offset-1', isActive);
+                button.title = itemCount > 0
+                    ? `${itemCount} item pada split ${zone}`
+                    : `Split ${zone} kosong`;
+            });
+        }
+
         function renderOrder() {
-            const totalQty = orderItems.reduce((sum, item) => sum + item.qty, 0);
-            const total = orderItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const visibleItems = getVisibleItems();
+            const totalQty = visibleItems.reduce((sum, item) => sum + Number(item.qty), 0);
+            const total = visibleItems.reduce((sum, item) => sum + (Number(item.price) * Number(item.qty)), 0);
 
             itemCountBadge.textContent = `${totalQty} item`;
             grandTotal.textContent = formatRupiah(total);
 
-            if (orderItems.length === 0) {
-                currentDraftIdentity = null;
-            }
+            updateTableContext();
+            renderZoneButtons();
 
-            if (orderItems.length === 0) {
+            if (visibleItems.length === 0) {
                 orderItemsBody.innerHTML = `
                     <tr id="emptyItemRow">
-                        <td colspan="4" class="px-3 py-10 text-center text-slate-400">Belum ada item. Pilih menu di sebelah kanan.</td>
+                        <td colspan="4" class="px-3 py-10 text-center text-slate-400">
+                            Belum ada item di split ${escapeHtml(activeSplitZone)}. Pilih menu di sebelah kanan.
+                        </td>
                     </tr>
                 `;
                 return;
             }
 
-            orderItemsBody.innerHTML = orderItems.map((item, index) => `
+            orderItemsBody.innerHTML = visibleItems.map((item) => `
                 <tr class="border-b border-slate-100 hover:bg-slate-50">
-                    <td class="px-3 py-2 font-semibold text-slate-600">${item.name}</td>
+                    <td class="px-3 py-2">
+                        <div class="font-semibold text-slate-600">${escapeHtml(item.name)}</div>
+                        <div class="mt-0.5 text-[9px] text-slate-400">
+                            ${escapeHtml(item.serviceCode)} · Seat ${item.seatNo} · Split ${item.splitZone}
+                        </div>
+                    </td>
                     <td class="px-2 py-2 text-center">
                         <div class="inline-flex items-center overflow-hidden rounded-sm border border-slate-200 bg-white">
-                            <button class="qty-button px-1.5 py-1 text-slate-500 hover:bg-slate-100" data-index="${index}" data-change="-1">−</button>
+                            <button class="qty-button px-1.5 py-1 text-slate-500 hover:bg-slate-100" data-item-id="${escapeHtml(item.uid)}" data-change="-1">−</button>
                             <span class="min-w-6 px-1 text-center text-slate-700">${item.qty}</span>
-                            <button class="qty-button px-1.5 py-1 text-slate-500 hover:bg-slate-100" data-index="${index}" data-change="1">+</button>
+                            <button class="qty-button px-1.5 py-1 text-slate-500 hover:bg-slate-100" data-item-id="${escapeHtml(item.uid)}" data-change="1">+</button>
                         </div>
                     </td>
                     <td class="px-2 py-2 text-right font-semibold text-[#2a6d8c]">${formatRupiah(item.price * item.qty)}</td>
                     <td class="px-1 py-2 text-center">
-                        <button class="remove-item rounded p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600" data-index="${index}" title="Hapus item">
+                        <button class="remove-item rounded p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600" data-item-id="${escapeHtml(item.uid)}" title="Hapus item">
                             <i data-lucide="x" class="h-3.5 w-3.5"></i>
                         </button>
                     </td>
@@ -365,29 +547,62 @@
 
             document.querySelectorAll('.qty-button').forEach((button) => {
                 button.addEventListener('click', () => {
-                    const index = Number(button.dataset.index);
+                    const item = orderItems.find((candidate) => candidate.uid === button.dataset.itemId);
                     const change = Number(button.dataset.change);
-                    orderItems[index].qty += change;
-                    if (orderItems[index].qty <= 0) orderItems.splice(index, 1);
+
+                    if (!item) {
+                        return;
+                    }
+
+                    item.qty += change;
+
+                    if (item.qty <= 0) {
+                        const index = orderItems.findIndex((candidate) => candidate.uid === item.uid);
+
+                        if (index >= 0) {
+                            orderItems.splice(index, 1);
+                        }
+                    }
+
                     renderOrder();
                 });
             });
 
             document.querySelectorAll('.remove-item').forEach((button) => {
                 button.addEventListener('click', () => {
-                    orderItems.splice(Number(button.dataset.index), 1);
-                    renderOrder();
+                    const index = orderItems.findIndex((candidate) => candidate.uid === button.dataset.itemId);
+
+                    if (index >= 0) {
+                        orderItems.splice(index, 1);
+                        renderOrder();
+                    }
                 });
             });
         }
 
-        function addService(name, price) {
-            const existingItem = orderItems.find((item) => item.name === name);
+        function addService(name, price, serviceCode) {
+            ensureDraftIdentity(activeSplitZone);
+
+            const existingItem = orderItems.find((item) => {
+                return item.splitZone === activeSplitZone
+                    && item.serviceCode === resolveServiceCode(serviceCode, name)
+                    && Number(item.seatNo) === 1
+                    && Number(item.price) === Number(price)
+                    && item.name === name;
+            });
+
             if (existingItem) {
                 existingItem.qty += 1;
             } else {
-                orderItems.push({ name, price: Number(price), qty: 1 });
+                orderItems.push(createOrderItem({
+                    name,
+                    price,
+                    serviceCode,
+                    splitZone: activeSplitZone,
+                    seatNo: 1,
+                }));
             }
+
             renderOrder();
         }
 
@@ -399,14 +614,54 @@
                 const matchesCategory = card.dataset.serviceCategory === activeCategory;
                 const matchesKeyword = !keyword || card.dataset.serviceName.toLowerCase().includes(keyword);
                 const visible = matchesCategory && matchesKeyword;
+
                 card.classList.toggle('hidden', !visible);
+
                 if (visible) visibleCount += 1;
             });
 
             noServiceMessage?.classList.toggle('hidden', visibleCount > 0);
         }
 
-        serviceCards.forEach((card) => card.addEventListener('click', () => addService(card.dataset.serviceName, card.dataset.servicePrice)));
+        function prepareMoveSplitContext() {
+            const preferredZone = getItemsForZone(activeSplitZone).length > 0
+                ? activeSplitZone
+                : (getFirstOccupiedZone() ?? activeSplitZone);
+            const identity = getDraftIdentity(preferredZone) ?? ensureDraftIdentity(preferredZone);
+
+            window.dispatchEvent(new CustomEvent('move-split:prepare', {
+                detail: {
+                    tableNo: extractTableNo(),
+                    orderNo: identity?.checkNo ?? '0000000000',
+                    currentZone: activeSplitZone,
+                    items: orderItems.map((item) => ({
+                        itemId: item.uid,
+                        seq: item.seq,
+                        serviceCode: item.serviceCode,
+                        description: item.name,
+                        seatNo: item.seatNo,
+                        qty: item.qty,
+                        split: item.splitZone,
+                        splitQty: 1,
+                    })),
+                },
+            }));
+        }
+
+        function setActiveSplitZone(zone) {
+            activeSplitZone = normalizeZone(zone, activeSplitZone);
+            renderOrder();
+        }
+
+        serviceCards.forEach((card) => {
+            card.addEventListener('click', () => {
+                addService(
+                    card.dataset.serviceName,
+                    card.dataset.servicePrice,
+                    card.dataset.serviceCode,
+                );
+            });
+        });
 
         categoryButtons.forEach((button) => {
             button.addEventListener('click', () => {
@@ -435,9 +690,7 @@
 
         zoneButtons.forEach((button) => {
             button.addEventListener('click', () => {
-                zoneButtons.forEach((item) => item.classList.remove('ring-2', 'ring-[#2c88b4]', 'ring-offset-1'));
-                button.classList.add('ring-2', 'ring-[#2c88b4]', 'ring-offset-1');
-                if (activeTableTab) activeTableTab.textContent = `TABLE ${button.dataset.zone}${baseTableNo}`;
+                setActiveSplitZone(button.dataset.zone);
             });
         });
 
@@ -449,26 +702,28 @@
         });
 
         document.getElementById('clearOrderButton')?.addEventListener('click', () => {
-            if (orderItems.length === 0 || window.confirm('Hapus semua item pesanan?')) {
+            if (orderItems.length === 0 || window.confirm('Hapus semua item pesanan di seluruh split?')) {
                 resetOrder();
             }
         });
 
         document.getElementById('cancelOrderButton')?.addEventListener('click', () => {
-            if (window.confirm('Batalkan transaksi ini?')) {
+            if (window.confirm('Batalkan seluruh transaksi split pada meja ini?')) {
                 resetOrder();
             }
         });
 
         document.getElementById('saveOrderButton')?.addEventListener('click', () => {
-            if (!orderItems.length) {
-                window.alert('Silakan tambahkan service terlebih dahulu.');
+            const snapshot = buildOrderSnapshot(activeSplitZone);
+
+            if (!snapshot) {
+                window.alert(`Silakan tambahkan service pada split ${activeSplitZone} terlebih dahulu.`);
                 return;
             }
 
-            const snapshot = buildOrderSnapshot();
-
-            window.alert(`Pesanan disimpan.\nCheck #: ${snapshot.checkNo}\nTotal: ${formatRupiah(snapshot.total)}`);
+            window.alert(
+                `Pesanan split ${snapshot.splitZone} disimpan.\nCheck #: ${snapshot.checkNo}\nTotal: ${formatRupiah(snapshot.total)}`
+            );
         });
 
         document.getElementById('addOrderButton')?.addEventListener('click', () => serviceSearch?.focus());
@@ -496,6 +751,19 @@
             if (referenceField) referenceField.value = event.detail.folioNo ?? '';
         });
 
+        moveSplitButtons.forEach((button) => {
+            button.addEventListener('click', (event) => {
+                if (!orderItems.length) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    window.alert('Belum ada item yang bisa dipindahkan ke split lain.');
+                    return;
+                }
+
+                prepareMoveSplitContext();
+            });
+        });
+
         billingButtons.forEach((button) => {
             button.addEventListener('click', (event) => {
                 const payload = buildBillingPayload();
@@ -503,7 +771,7 @@
                 if (!payload) {
                     event.preventDefault();
                     event.stopPropagation();
-                    window.alert('Belum ada transaksi yang bisa dicetak.');
+                    window.alert(`Belum ada transaksi pada split ${activeSplitZone} yang bisa dicetak.`);
                     return;
                 }
 
@@ -515,22 +783,99 @@
 
         settleButtons.forEach((button) => {
             button.addEventListener('click', (event) => {
-                if (!orderItems.length) {
+                const config = buildSettlementConfig(activeSplitZone);
+
+                if (!config) {
                     event.preventDefault();
                     event.stopPropagation();
-                    window.alert('Silakan tambahkan service terlebih dahulu.');
+                    window.alert(`Silakan tambahkan service pada split ${activeSplitZone} terlebih dahulu.`);
                     return;
                 }
 
                 window.dispatchEvent(new CustomEvent('settlement:configure', {
-                    detail: buildSettlementConfig(),
+                    detail: config,
                 }));
             });
         });
 
+        window.addEventListener('move-split-processed', (event) => {
+            const detail = event.detail || {};
+            const sourceItem = orderItems.find((item) => item.uid === detail.itemId);
+
+            if (!sourceItem) {
+                return;
+            }
+
+            const destinationZone = normalizeZone(detail.destination ?? detail.splitZone, sourceItem.splitZone);
+            const destinationSeatNo = Math.max(1, Number(detail.destinationSeatNo ?? detail.seatNo ?? sourceItem.seatNo));
+            const splitQty = Math.max(1, Number(detail.splitQty ?? 0));
+            const acceptedSplitQty = Math.min(splitQty, Number(sourceItem.qty));
+            const sameDestination = destinationZone === sourceItem.splitZone
+                && Number(destinationSeatNo) === Number(sourceItem.seatNo);
+
+            if (acceptedSplitQty < 1 || sameDestination) {
+                window.alert('Tidak ada perubahan split yang diproses.');
+                return;
+            }
+
+            ensureDraftIdentity(destinationZone);
+
+            if (acceptedSplitQty === Number(sourceItem.qty)) {
+                const targetItem = findMergeTarget(sourceItem, destinationZone, destinationSeatNo, sourceItem.uid);
+
+                if (targetItem) {
+                    targetItem.qty += Number(sourceItem.qty);
+
+                    const sourceIndex = orderItems.findIndex((item) => item.uid === sourceItem.uid);
+                    if (sourceIndex >= 0) {
+                        orderItems.splice(sourceIndex, 1);
+                    }
+                } else {
+                    sourceItem.splitZone = destinationZone;
+                    sourceItem.seatNo = destinationSeatNo;
+                }
+            } else {
+                sourceItem.qty -= acceptedSplitQty;
+
+                const targetItem = findMergeTarget(sourceItem, destinationZone, destinationSeatNo);
+
+                if (targetItem) {
+                    targetItem.qty += acceptedSplitQty;
+                } else {
+                    orderItems.push(createOrderItem({
+                        name: sourceItem.name,
+                        price: sourceItem.price,
+                        serviceCode: sourceItem.serviceCode,
+                        qty: acceptedSplitQty,
+                        splitZone: destinationZone,
+                        seatNo: destinationSeatNo,
+                    }));
+                }
+            }
+
+            renderOrder();
+        });
+
         window.addEventListener('settlement-completed', (event) => {
-            persistCompletedTransaction(event.detail || {});
-            resetOrder();
+            const settledZone = activeSplitZone;
+            const transactionRecord = persistCompletedTransaction(settledZone, event.detail || {});
+
+            if (!transactionRecord) {
+                return;
+            }
+
+            removeItemsForZone(settledZone, { clearIdentity: true });
+
+            const nextOccupiedZone = getFirstOccupiedZone();
+
+            if (nextOccupiedZone) {
+                activeSplitZone = nextOccupiedZone;
+            } else {
+                activeSplitZone = 'A';
+                resetSharedFields();
+            }
+
+            renderOrder();
         });
 
         const existingTransactions = loadTransactions();

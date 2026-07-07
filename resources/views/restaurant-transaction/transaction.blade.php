@@ -4,18 +4,18 @@
     $resolvedSelectedTable = $selectedTable ?? '01';
     $tableListUrl = route('restaurant.table-list', ['selected_table' => $resolvedSelectedTable]);
     $serviceItems = [
-        ['name' => 'Gado-Gado', 'price' => 35000, 'category' => 'Appetizer'],
-        ['name' => 'Spring Roll', 'price' => 30000, 'category' => 'Appetizer'],
-        ['name' => 'Chicken Satay', 'price' => 55000, 'category' => 'Appetizer'],
-        ['name' => 'Nasi Goreng Special', 'price' => 65000, 'category' => 'Nusantara Food'],
-        ['name' => 'Mie Goreng', 'price' => 60000, 'category' => 'Nusantara Food'],
-        ['name' => 'Soto Ayam', 'price' => 45000, 'category' => 'Nusantara Food'],
-        ['name' => 'Caesar Salad', 'price' => 50000, 'category' => 'Vegetarian'],
-        ['name' => 'French Fries', 'price' => 28000, 'category' => 'Food Promotion'],
-        ['name' => 'Chocolate Cake', 'price' => 40000, 'category' => 'Dessert'],
-        ['name' => 'Ice Tea', 'price' => 18000, 'category' => 'Buffet'],
-        ['name' => 'Mineral Water', 'price' => 12000, 'category' => 'Buffet'],
-        ['name' => 'Coffee Latte', 'price' => 35000, 'category' => 'Buffet'],
+        ['service_code' => 'FNB-4001', 'name' => 'Gado-Gado', 'price' => 35000, 'category' => 'Appetizer'],
+        ['service_code' => 'FNB-4002', 'name' => 'Spring Roll', 'price' => 30000, 'category' => 'Appetizer'],
+        ['service_code' => 'FNB-4003', 'name' => 'Chicken Satay', 'price' => 55000, 'category' => 'Appetizer'],
+        ['service_code' => 'FNB-4101', 'name' => 'Nasi Goreng Special', 'price' => 65000, 'category' => 'Nusantara Food'],
+        ['service_code' => 'FNB-4102', 'name' => 'Mie Goreng', 'price' => 60000, 'category' => 'Nusantara Food'],
+        ['service_code' => 'FNB-4103', 'name' => 'Soto Ayam', 'price' => 45000, 'category' => 'Nusantara Food'],
+        ['service_code' => 'FNB-4201', 'name' => 'Caesar Salad', 'price' => 50000, 'category' => 'Vegetarian'],
+        ['service_code' => 'FNB-4301', 'name' => 'French Fries', 'price' => 28000, 'category' => 'Food Promotion'],
+        ['service_code' => 'FNB-4401', 'name' => 'Chocolate Cake', 'price' => 40000, 'category' => 'Dessert'],
+        ['service_code' => 'FNB-4501', 'name' => 'Ice Tea', 'price' => 18000, 'category' => 'Buffet'],
+        ['service_code' => 'FNB-4502', 'name' => 'Mineral Water', 'price' => 12000, 'category' => 'Buffet'],
+        ['service_code' => 'FNB-4503', 'name' => 'Coffee Latte', 'price' => 35000, 'category' => 'Buffet'],
     ];
 @endphp
 
